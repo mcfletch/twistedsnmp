@@ -56,7 +56,7 @@ class TableRetriever( object ):
 		"""
 		self.recordCallback = recordCallback
 		self.df = defer.Deferred()
-		self.getTable( includeStart= self.includeStart)
+		self.getTable( includeStart= self.includeStart, firstCall=True)
 		return self.df
 	if USE_STRING_OIDS:
 		def integrateNewRecord( self, oidValues, rootOIDs ):
@@ -124,7 +124,7 @@ class TableRetriever( object ):
 					del self.df
 	def getTable(
 		self, oids=None, roots=None, includeStart=0,
-		retryCount=None, delay=None
+		retryCount=None, delay=None, firstCall=False,
 	):
 		"""Retrieve all sub-oids from these roots
 
@@ -134,6 +134,11 @@ class TableRetriever( object ):
 			ignored for v2c.  Should likely be avoided entirely.  Would
 			be implemented with a seperate get call anyway, which may as
 			well be explicitly coded when you want it.
+		firstCall -- whether this is the first call, if it is, and we
+			allow caching, we'll ask the proxy to cache our encoded 
+			request.  We don't cache continuations because they will
+			be different depending on where the iteration happens to
+			break.
 
 		This is the "walk" example from pysnmp re-cast...
 		"""
@@ -150,7 +155,10 @@ class TableRetriever( object ):
 			self.proxy.community,
 			next= not includeStart,
 			bulk = (self.bulk and self.proxy.getImplementation() is v2c),
-			maxRepetitions = self.maxRepetitions
+			maxRepetitions = self.maxRepetitions,
+			# only want to cache the first request, as all others are 
+			# continuations which might start at any random record
+			allowCache = firstCall,
 		)
 
 		roots = roots[:]
