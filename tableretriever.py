@@ -51,33 +51,35 @@ class TableRetriever( object ):
 		self.getTable( includeStart= self.includeStart)
 		return self.df
 	def integrateNewRecord( self, oidValues, rootOIDs ):
-		"""Integrate a record-set into the table"""
+		"""Integrate a record-set into the table
+
+		This method is quite simplistic in its approach, it
+		just checks for each value in oidValues if it is a
+		child or a root in rootOIDs, and if it is, adds it to
+		the result-set for that root.  This approach is a
+		little more robust than the previous one, which used
+		the standard's rather complex mechanism for mapping
+		root:oid, and was resulting in some very strange results
+		in certain testing situations.
+		"""
 		OID = self.proxy.getImplementation().ObjectIdentifier
-		while oidValues:
-			oidSet = oidValues[:len(rootOIDs)]
-			del oidValues[:len(rootOIDs)]
-			for (root,(key,value)) in zip(rootOIDs, oidSet):
-				# we haven't yet filtered this copy of the oidValues,
-				# so need to filter to make sure we haven't gone beyond
-				# the end of the root values
-				
-				# XXX See note in areWeDone regarding problem with
-				# having a single root no longer continuing, likely
-				# indexing problems eventually
-##				print 'root', root
-##				print 'key', key
-##				print 'value', value
-				if OID(str(root)).isaprefix(str(key)) and not isinstance(value, v2c.EndOfMibView):
-					table = self.values.setdefault(root,{})
-					if not table.has_key(key):
-						table[key] = value
+		for root in rootOIDs:
+			root = str(root)
+			rootOID = OID(root)
+			for (key,value) in oidValues:
+				if rootOID.isaprefix(str(key)) and not isinstance(value, v2c.EndOfMibView):
+					current = self.values.get( root )
+					if current is None:
+						self.values[ root ] = current = {}
+					# avoids duplicate callbacks!
+					if not current.has_key( key ):
+						current[ key ] = value
 						if self.recordCallback is not None and callable(self.recordCallback):
 							self.recordCallback( root, key, value )
 		if self.finished and self.finished < 2:
 			self.finished = 2
 			if not self.df.called:
 				self.df.callback( self.values )
-				
 	def getTable( self, oids=None, roots=None, includeStart=0, retryCount=None, delay=None):
 		"""Retrieve all sub-oids from these roots
 
@@ -203,11 +205,6 @@ class TableRetriever( object ):
 			assert N == 0, """Not yet sure that non-repeaters are handled correctly!"""
 			# R is the number of repeating OIDs
 			R = len(roots) - N
-			# M is the number of repetitions...
-			if R:
-				M = len(newOIDs) / R
-			else:
-				M = 0
 			# Leave the last instance of each requested repeating OID
 			newOIDs = newOIDs[-R:]
 
