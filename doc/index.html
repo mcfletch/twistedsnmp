@@ -111,6 +111,23 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.3.0<br>
+</p>
+<ul>
+  <li>Allows for patches to PySNMP 3.4 to use tuple-based OID objects
+for representing OIDs instead of strings, if the patch is installed
+then TwistedSNMP will produce <code>pysnmp.ans1.oid.OID</code>
+instances for all OID return values, otherwise it will continue to
+produce formatted-string OIDs.</li>
+  <ul>
+    <li>The effect of the patch on performance is dependent primary on
+how much tabular retrieval you do.</li>
+    <li>Note that if you install the patch, you will almost certainly
+need to alter your client code to deal with OID objects rather than
+strings.<br>
+    </li>
+  </ul>
+</ul>
 <p>Version 0.2.15<br>
 </p>
 <ul>

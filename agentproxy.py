@@ -1,10 +1,12 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 from twistedsnmp.logs import agentproxy_log as log
+
+OID = oid.OID
 
 __metaclass__ = type
 DEFAULT_BULK_REPETITION_SIZE = 128
@@ -58,7 +60,7 @@ class AgentProxy:
 		"""
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
-		oids = [str(oid) for oid in oids ]
+		oids = [OID(oid) for oid in oids ]
 		request = self.encode(oids, self.community)
 		key = self.getRequestKey( request )
 		try:
@@ -66,7 +68,13 @@ class AgentProxy:
 		except socket.error, err:
 			return defer.fail(failure.Failure())
 		def asDictionary( value ):
-			return dict(value)
+			try:
+				return dict(value)
+			except Exception, err:
+				traceback.print_exc()
+				import pdb
+				pdb.set_trace()
+				print value
 		df = defer.Deferred()
 		df.addCallback( self.getResponseResults )
 		df.addCallback( asDictionary )
@@ -141,7 +149,7 @@ class AgentProxy:
 		)
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(self.protocol,))
-		roots = [str(oid) for oid in roots ]
+		roots = [OID(oid) for oid in roots ]
 		retriever = tableretriever.TableRetriever(
 			self, roots, includeStart=includeStart,
 			retryCount=retryCount, timeout= timeout,
@@ -211,7 +219,7 @@ class AgentProxy:
 			pdu = response.apiGenGetPdu()
 			answer = pdu.apiGenGetVarBind()
 			return [
-				(a,b.getTerminal().get())
+				(OID(a),b.getTerminal().get())
 				for a,b in answer
 				if not isinstance( b, v2c.EndOfMibView)
 			]

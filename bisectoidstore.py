@@ -2,7 +2,7 @@
 from __future__ import generators
 import bisect
 from twistedsnmp import agent, oidstore, errors
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid
 
 try:
 	enumerate
@@ -14,12 +14,16 @@ except NameError:
 			yield i,x
 			i += 1
 
-def oidToSortable( oid ):
-	"""Convert a dotted-format OID to a sortable string"""
-	return tuple([int(i) for i in oid.split('.') if i ])
-def sortableToOID( sortable ):
-	"""Convert sortable rep to a dotted-string representation"""
-	return '.%s'%( ".".join([str(x) for x in sortable]))
+if getattr(oid, 'USE_STRING_OIDS',False):
+	def oidToSortable( oid ):
+		"""Convert a dotted-format OID to a sortable string"""
+		return tuple([int(i) for i in oid.split('.') if i ])
+	def sortableToOID( sortable ):
+		"""Convert sortable rep to a dotted-string representation"""
+		return '.%s'%( ".".join([str(x) for x in sortable]))
+else:
+	oidToSortable = oid.OID
+	sortableToOID = oid.OID
 
 
 class BisectOIDStore(oidstore.OIDStore):

@@ -1,5 +1,5 @@
 from twistedsnmp.test import basetestcase
-from twistedsnmp.pysnmpproto import v1
+from twistedsnmp.pysnmpproto import v1, oid
 import unittest
 
 class SetRetrieverV1( basetestcase.BaseTestCase ):
@@ -21,7 +21,9 @@ class SetRetrieverV1( basetestcase.BaseTestCase ):
 		)
 		self.doUntilFinish( d )
 		assert self.success, self.response
-		assert self.response == { '.1.3.6.1.2.1.1.5.0':3 }
+##		import pdb
+##		pdb.set_trace()
+		assert self.response == { oid.OID('.1.3.6.1.2.1.1.5.0'):3 }, self.response
 
 	def test_setReplaceAnOID( self ):
 		"""After a replace-set, is the set value retrieved?"""
@@ -34,7 +36,7 @@ class SetRetrieverV1( basetestcase.BaseTestCase ):
 		)
 		self.doUntilFinish( d )
 		assert self.success, self.response
-		assert self.response == { '.1.3.6.1.2.1.1.4.0':3 }
+		assert self.response == { oid.OID('.1.3.6.1.2.1.1.4.0'):3 }
 	def test_socketFailure( self ):
 		"""Test for failure due to sending-time socket failure"""
 		import socket

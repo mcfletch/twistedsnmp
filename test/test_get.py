@@ -4,27 +4,30 @@ import socket, unittest
 from twistedsnmp import agent, agentprotocol, twinetables, agentproxy
 from twistedsnmp import snmpprotocol, massretriever
 from twistedsnmp.test import basetestcase
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid
 
 class GetRetrieverV1( basetestcase.BaseTestCase ):
 	version = 'v1'
 	oidsForTesting = [
-		('.1.3.6.1.2.1.1.1.0', 'Hello world!'),
-		('.1.3.6.1.2.1.1.2.0', 32),
-		('.1.3.6.1.2.1.1.3.0', v1.IpAddress('127.0.0.1')),
-		('.1.3.6.1.2.1.1.4.0', v1.OctetString('From Octet String')),
-		('.1.3.6.1.2.1.2.1.0', 'Hello world!'),
-		('.1.3.6.1.2.1.2.2.0', 32),
-		('.1.3.6.1.2.1.2.3.0', v1.IpAddress('127.0.0.1')),
-		('.1.3.6.1.2.1.2.4.0', v1.OctetString('From Octet String')),
-	] + [
-		('.1.3.6.1.2.1.3.%s.0'%i, 32)
-		for i in xrange( 512 )
-	] + [
-		('.1.3.6.2.1.0', 'Hello world!'),
-		('.1.3.6.2.2.0', 32),
-		('.1.3.6.2.3.0', v1.IpAddress('127.0.0.1')),
-		('.1.3.6.2.4.0', v1.OctetString('From Octet String')),
+		(oid.OID(key),value)
+		for key,value in [
+			('.1.3.6.1.2.1.1.1.0', 'Hello world!'),
+			('.1.3.6.1.2.1.1.2.0', 32),
+			('.1.3.6.1.2.1.1.3.0', v1.IpAddress('127.0.0.1')),
+			('.1.3.6.1.2.1.1.4.0', v1.OctetString('From Octet String')),
+			('.1.3.6.1.2.1.2.1.0', 'Hello world!'),
+			('.1.3.6.1.2.1.2.2.0', 32),
+			('.1.3.6.1.2.1.2.3.0', v1.IpAddress('127.0.0.1')),
+			('.1.3.6.1.2.1.2.4.0', v1.OctetString('From Octet String')),
+		] + [
+			('.1.3.6.1.2.1.3.%s.0'%i, 32)
+			for i in xrange( 512 )
+		] + [
+			('.1.3.6.2.1.0', 'Hello world!'),
+			('.1.3.6.2.2.0', 32),
+			('.1.3.6.2.3.0', v1.IpAddress('127.0.0.1')),
+			('.1.3.6.2.4.0', v1.OctetString('From Octet String')),
+		]
 	]
 	#good
 	def test_simpleGet( self ):
@@ -36,8 +39,8 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 
 		assert self.success, self.response
 		assert isinstance( self.response, dict ), self.response
-		assert self.response.has_key( '.1.3.6.1.2.1.1.1.0' ), self.response
-		assert self.response['.1.3.6.1.2.1.1.1.0' ] == 'Hello world!', self.response
+		assert self.response.has_key( oid.OID('.1.3.6.1.2.1.1.1.0') ), self.response
+		assert self.response[oid.OID('.1.3.6.1.2.1.1.1.0') ] == 'Hello world!', self.response
 
 	#good
 	def test_tableGet( self ):
@@ -49,10 +52,12 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 
 		assert self.success, self.response
 		assert isinstance( self.response, dict ), self.response
-		assert self.response.has_key( '.1.3.6.1.2.1.1' ), (self.response,self)
-		tableData = self.response['.1.3.6.1.2.1.1' ]
+		assert self.response.has_key(
+			oid.OID('.1.3.6.1.2.1.1')
+		), (self.response,self)
+		tableData = self.response[oid.OID('.1.3.6.1.2.1.1') ]
 		assert isinstance(tableData, dict)
-		assert tableData.has_key('.1.3.6.1.2.1.1.1.0'), tableData
+		assert tableData.has_key(oid.OID('.1.3.6.1.2.1.1.1.0')), tableData
 
 	#good
 	def test_tableGetMissing( self ):
@@ -72,7 +77,9 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		] )
 		self.doUntilFinish( d )
 		assert self.success, self.response
-		assert self.response == {'.1.3.6':dict( self.oidsForTesting )}, self.response
+		assert self.response == {
+			oid.OID('.1.3.6'):dict( self.oidsForTesting )
+		}, self.response
 	#bad
 	def test_multiTableGet( self ):
 		oids = [
@@ -85,8 +92,8 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		if not self.success:
 			raise self.response.value
 		else:
-			for oid in oids:
-				assert self.response.has_key( oid )
+			for oidObject in oids:
+				assert self.response.has_key( oid.OID(oidObject) )
 	#good
 	def test_multiTableGetBad( self ):
 		oids = [
@@ -97,9 +104,9 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		]
 		d = self.client.getTable( oids )
 		self.doUntilFinish( d )
-		for oid in oids[:-1]:
-			assert self.response.has_key( oid )
-		assert not self.response.has_key( oids[-1] ), self.response
+		for oidObject in oids[:-1]:
+			assert self.response.has_key( oid.OID(oidObject) )
+		assert not self.response.has_key( oid.OID(oids[-1]) ), self.response
 
 	#good
 	def test_socketFailure( self ):
@@ -202,7 +209,10 @@ class MassRetrieverTest( basetestcase.BaseTestCase ):
 		d = retriever( oids = ['.1.3.6.1.1.3',] )
 		self.doUntilFinish( d )
 		assert self.success, self.response
-		assert self.response == {('127.0.0.1',self.agent.port): {'.1.3.6.1.1.3':'Blah!'}}, self.response
+		assert self.response == {
+			('127.0.0.1',self.agent.port):
+			{oid.OID('.1.3.6.1.1.3'):'Blah!'}
+		}, self.response
 		retriever.printStats()
 	def testMassRetrieverTables( self ):
 		"""Can we retrieve mass value tabular sets?"""
@@ -231,15 +241,15 @@ class MassRetrieverTest( basetestcase.BaseTestCase ):
 		assert self.success, self.response
 		expected = {
 			('127.0.0.1', self.agent.port): {
-				'.1.3.6.1.2.1':{
-					'.1.3.6.1.2.1.1.1.0': 'Hello world!',
-					'.1.3.6.1.2.1.1.2.0': 32,
-					'.1.3.6.1.2.1.1.3.0': '127.0.0.1',
-					'.1.3.6.1.2.1.1.4.0': 'From Octet String',
+				oid.OID('.1.3.6.1.2.1'):{
+					oid.OID('.1.3.6.1.2.1.1.1.0'): 'Hello world!',
+					oid.OID('.1.3.6.1.2.1.1.2.0'): 32,
+					oid.OID('.1.3.6.1.2.1.1.3.0'): '127.0.0.1',
+					oid.OID('.1.3.6.1.2.1.1.4.0'): 'From Octet String',
 				}
 			},
 			('127.0.0.1', self.agent.port+10000): {
-				'.1.3.6.1.2.1':None,
+				oid.OID('.1.3.6.1.2.1'):None,
 			},
 		}
 		assert self.response == expected, (expected,self.response)

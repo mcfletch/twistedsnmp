@@ -6,6 +6,9 @@ from twistedsnmp import agentproxy
 import traceback
 from twistedsnmp.logs import massretriever_log as log
 
+from twistedsnmp.pysnmpproto import oid
+
+
 def proxies( protocol, addresses, proxyClass=agentproxy.AgentProxy ):
 	"""Given protocol and set of addresses, construct AgentProxies
 
@@ -188,9 +191,10 @@ class MassRetriever( object ):
 		set = self.result.get( key )
 		if set is None:
 			self.result[key] = set = {}
-		for oid in oids:
-			if not set.has_key( oid ):
-				set[oid] = None
+		for oidObject in oids:
+			oidObject = oid.OID( oidObject )
+			if not set.has_key( oidObject ):
+				set[oidObject] = None
 		return None
 	def printStats( self ):
 		"""Print heuristic stats for the retriever"""

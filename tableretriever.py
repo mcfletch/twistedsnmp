@@ -1,7 +1,7 @@
 """Helper object for the AgentProxy object"""
 from twisted.internet import defer, protocol, reactor
 from twisted.python import failure
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid, USE_STRING_OIDS
 import traceback, socket, weakref
 from twistedsnmp.logs import tableretriever_log as log
 
@@ -38,7 +38,7 @@ class TableRetriever( object ):
 			bulk request
 		"""
 		self.proxy = proxy
-		self.roots = roots
+		self.roots = [ oid.OID(r) for r in roots]
 		self.includeStart = includeStart
 		self.retryCount = retryCount
 		self.timeout = timeout
@@ -58,37 +58,70 @@ class TableRetriever( object ):
 		self.df = defer.Deferred()
 		self.getTable( includeStart= self.includeStart)
 		return self.df
-	def integrateNewRecord( self, oidValues, rootOIDs ):
-		"""Integrate a record-set into the table
+	if USE_STRING_OIDS:
+		def integrateNewRecord( self, oidValues, rootOIDs ):
+			"""Integrate a record-set into the table
 
-		This method is quite simplistic in its approach, it
-		just checks for each value in oidValues if it is a
-		child or a root in rootOIDs, and if it is, adds it to
-		the result-set for that root.  This approach is a
-		little more robust than the previous one, which used
-		the standard's rather complex mechanism for mapping
-		root:oid, and was resulting in some very strange results
-		in certain testing situations.
-		"""
-		OID = self.proxy.getImplementation().ObjectIdentifier
-		for root in rootOIDs:
-			root = str(root)
-			rootOID = OID(root)
-			for (key,value) in oidValues:
-				if rootOID.isaprefix(str(key)) and not isinstance(value, v2c.EndOfMibView):
-					current = self.values.get( root )
-					if current is None:
-						self.values[ root ] = current = {}
-					# avoids duplicate callbacks!
-					if not current.has_key( key ):
-						current[ key ] = value
-						if self.recordCallback is not None and callable(self.recordCallback):
-							self.recordCallback( root, key, value )
-		if self.finished and self.finished < 2:
-			self.finished = 2
-			if getattr(self,'df',None) and not self.df.called:
-				self.df.callback( self.values )
-				del self.df
+			This method is quite simplistic in its approach, it
+			just checks for each value in oidValues if it is a
+			child or a root in rootOIDs, and if it is, adds it to
+			the result-set for that root.  This approach is a
+			little more robust than the previous one, which used
+			the standard's rather complex mechanism for mapping
+			root:oid, and was resulting in some very strange results
+			in certain testing situations.
+			"""
+			OID = self.proxy.getImplementation().ObjectIdentifier
+			for root in rootOIDs:
+				root = str(root)
+				rootOID = OID( root )
+				for (key,value) in oidValues:
+					key = str(key)
+					if rootOID.isaprefix(key) and not isinstance(value, v2c.EndOfMibView):
+						current = self.values.get( root )
+						if current is None:
+							self.values[ root ] = current = {}
+						# avoids duplicate callbacks!
+						if not current.has_key( key ):
+							current[ key ] = value
+							if self.recordCallback is not None and callable(self.recordCallback):
+								self.recordCallback( root, key, value )
+			if self.finished and self.finished < 2:
+				self.finished = 2
+				if getattr(self,'df',None) and not self.df.called:
+					self.df.callback( self.values )
+					del self.df
+	else:
+		def integrateNewRecord( self, oidValues, rootOIDs ):
+			"""Integrate a record-set into the table
+
+			This method is quite simplistic in its approach, it
+			just checks for each value in oidValues if it is a
+			child or a root in rootOIDs, and if it is, adds it to
+			the result-set for that root.  This approach is a
+			little more robust than the previous one, which used
+			the standard's rather complex mechanism for mapping
+			root:oid, and was resulting in some very strange results
+			in certain testing situations.
+			"""
+			OID = oid.OID
+			for rootOID in rootOIDs:
+				for (key,value) in oidValues:
+					key = OID(key)
+					if rootOID.isaprefix(key) and not isinstance(value, v2c.EndOfMibView):
+						current = self.values.get( rootOID )
+						if current is None:
+							self.values[ rootOID ] = current = {}
+						# avoids duplicate callbacks!
+						if not current.has_key( key ):
+							current[ key ] = value
+							if self.recordCallback is not None and callable(self.recordCallback):
+								self.recordCallback( rootOID, key, value )
+			if self.finished and self.finished < 2:
+				self.finished = 2
+				if getattr(self,'df',None) and not self.df.called:
+					self.df.callback( self.values )
+					del self.df
 	def getTable(
 		self, oids=None, roots=None, includeStart=0,
 		retryCount=None, delay=None

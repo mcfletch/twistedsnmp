@@ -1,19 +1,38 @@
 """BSDDB BTree-based Shelve OID Storage"""
 import bsddb, shelve, traceback, sys
-from twistedsnmp import oidstore, errors
+from twistedsnmp import oidstore, errors, pysnmpproto
 import struct, weakref
 
-def oidToSortable( oid ):
-	"""Convert a dotted-format OID to a sortable string"""
-	return "".join([struct.pack('>I',int(i)) for i in oid.split('.') if i ])
-def sortableToOID( sortable ):
-	"""Convert sortable rep to a dotted-string representation"""
-	result = []
-	while sortable:
-		(i,) = struct.unpack( '>I', sortable[:4])
-		result.append( str(i) )
-		sortable = sortable[4:]
-	return '.%s'%( ".".join(result))
+OID = pysnmpproto.oid.OID
+
+if pysnmpproto.USE_STRING_OIDS:
+	def oidToSortable( oid ):
+		"""Convert a dotted-format OID to a sortable string"""
+		return "".join([
+			struct.pack('>I',int(i))
+			for i in oid.split('.')
+			if i
+		])
+	def sortableToOID( sortable ):
+		"""Convert sortable rep to a dotted-string representation"""
+		result = []
+		while sortable:
+			(i,) = struct.unpack( '>I', sortable[:4])
+			result.append( str(i) )
+			sortable = sortable[4:]
+		return '.%s'%( ".".join(result))
+else:
+	def oidToSortable( oid ):
+		"""Convert a dotted-format OID to a sortable string"""
+		return "".join([struct.pack('>I',int(i)) for i in OID(oid)])
+	def sortableToOID( sortable ):
+		"""Convert sortable rep to a dotted-string representation"""
+		result = []
+		while sortable:
+			(i,) = struct.unpack( '>I', sortable[:4])
+			result.append( str(i) )
+			sortable = sortable[4:]
+		return OID(result)
 
 class Closer( object ):
 	"""Close the OIDStore
