@@ -27,7 +27,7 @@ class AgentProxy:
 		self.protocol = protocol
 	def resolveVersion( self, value ):
 		"""Resolve a version specifier to a canonical version and an implementation"""
-		if self.snmpVersion in ("2",'2c','v2','v2c'):
+		if value in ("2",'2c','v2','v2c'):
 			return 'v2c', v2c
 		else:
 			return 'v1', v1
