@@ -3,6 +3,7 @@ from twisted.internet import defer, protocol, reactor
 from twistedsnmp.pysnmpproto import v2c,v1, error
 from pysnmp import error as pysnmp_error
 from pysnmp.asn1 import error as asnerror
+from twistedsnmp.logs import agentprotocol_log as log
 
 class AgentProtocol(protocol.ConnectedDatagramProtocol):
 	"""Base class for SNMP datagram protocol
@@ -55,6 +56,7 @@ class AgentProtocol(protocol.ConnectedDatagramProtocol):
 
 		XXX Needs to do minimal authentication at least!
 		"""
+		log.debug( 'datagram in from %s: %r', address, datagram )
 		processed = 0
 		for implementation in self.implementations:
 			request = implementation.Request()
@@ -64,7 +66,7 @@ class AgentProtocol(protocol.ConnectedDatagramProtocol):
 			except asnerror.ValueConstraintError, err:
 				pass
 			except pysnmp_error.PySnmpError, why:
-				print 'Malformed inbound message dropped: %s' % why
+				log.error( 'Malformed inbound message dropped: %s', why )
 				continue
 			else:
 				if self.verifyIdentity( request, address ):
@@ -84,11 +86,13 @@ class AgentProtocol(protocol.ConnectedDatagramProtocol):
 					elif requestType == 'set_request':
 						agent.set( request, address, implementation )
 					else:
-						print "Unrecognised request type", requestType
-					# Print it out
+						log.error( "Unrecognised request type %r", requestType )
 				break
 		if not processed:
-			print 'Warning: unable to decode message from %s:  %s'%( address, datagram )
+			log.warn(
+				'Warning: unable to decode message from %s:  %s',
+				address, datagram,
+			)
 	def requestType( self, request ):
 		"""Retrieve the request-type from the request"""
 		return request['pdu'].keys()[0]

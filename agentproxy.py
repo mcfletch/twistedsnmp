@@ -4,6 +4,7 @@ from twisted.python import failure
 from twistedsnmp.pysnmpproto import v2c,v1, error
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
+from twistedsnmp.logs import agentproxy_log as log
 
 __metaclass__ = type
 DEFAULT_BULK_REPETITION_SIZE = 128
@@ -57,11 +58,6 @@ class AgentProxy:
 		"""
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
-		df = defer.Deferred()
-		def asDictionary( value ):
-			return dict(value)
-		df.addCallback( self.getResponseResults )
-		df.addCallback( asDictionary )
 		oids = [str(oid) for oid in oids ]
 		request = self.encode(oids, self.community)
 		key = self.getRequestKey( request )
@@ -69,6 +65,11 @@ class AgentProxy:
 			self.send(request.encode())
 		except socket.error, err:
 			return defer.fail(failure.Failure())
+		def asDictionary( value ):
+			return dict(value)
+		df = defer.Deferred()
+		df.addCallback( self.getResponseResults )
+		df.addCallback( asDictionary )
 		timer = reactor.callLater(timeout, self._timeout, key, df, oids, timeout, retryCount)
 		self.protocol.requests[key] = df, timer
 		return df
@@ -82,7 +83,6 @@ class AgentProxy:
 		"""
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
-		df = defer.Deferred()
 		if hasattr( oids, "items"):
 			oids = oids.items()
 		request = self.encode(oids, self.community, set=1)
@@ -92,12 +92,16 @@ class AgentProxy:
 			if pdu.apiGenGetErrorStatus():
 				raise error.ProtoError( """Set failure""", pdu.apiGenGetErrorStatus() )
 			return response
-		df.addCallback( raiseOnError )
 		try:
 			self.send(request.encode())
 		except socket.error, err:
 			return defer.fail(failure.Failure())
-		timer = reactor.callLater(timeout, self._timeout, key, df, oids, timeout, retryCount)
+		df = defer.Deferred()
+		df.addCallback( raiseOnError )
+		timer = reactor.callLater(
+			timeout, self._timeout, key, df,
+			oids, timeout, retryCount,
+		)
 		self.protocol.requests[key] = df, timer
 		return df
 		
@@ -130,8 +134,11 @@ class AgentProxy:
 
 		return value is a defered for a { rootOID: { oid: value } } mapping
 		"""
-		if self.verbose:
-			print 'getTable( %(roots)r, %(includeStart)r, %(recordCallback)r,%(retryCount)r )'%locals()
+		log.debug(
+			'getTable( %r, %r, %r, %r, %r, %r )',
+			roots, includeStart, recordCallback, retryCount,
+			timeout, maxRepetitions,
+		)
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(self.protocol,))
 		roots = [str(oid) for oid in roots ]
@@ -165,8 +172,10 @@ class AgentProxy:
 		maxRepetitions=DEFAULT_BULK_REPETITION_SIZE,
 	):
 		"""Encode a datagram message"""
-		if self.verbose:
-			print 'encode( %(oids)r, %(community)r, %(next)r, %(bulk)r, %(set)r)'%locals()
+		log.debug(
+			'encode( %r, %r, %r, %r, %r, %r )',
+			oids, community, next, bulk, set, maxRepetitions,
+		)
 		implementation = self.getImplementation()
 		if bulk:
 			request = implementation.GetBulkRequest()
@@ -177,11 +186,7 @@ class AgentProxy:
 			request = implementation.GetNextRequest()
 		else:
 			request = implementation.GetRequest()
-		try:
-			request.apiGenSetCommunity( community )
-		except AttributeError, err:
-			import pdb
-			pdb.set_trace()
+		request.apiGenSetCommunity( community )
 		pdu = request.apiGenGetPdu()
 		def oidFix( value, implementation=implementation ):
 			if isinstance( value, tuple ) and len(value) == 2:
@@ -201,8 +206,7 @@ class AgentProxy:
 		that wants [(oid,value)...] format instead of response
 		objects register this callback before the needy callback.
 		"""
-		if self.verbose:
-			print 'getResponseResults( %(response)r )'%locals()
+		log.debug( 'getResponseResults( %r )', response )
 		if response and not response.apiGenGetPdu().apiGenGetErrorStatus():
 			pdu = response.apiGenGetPdu()
 			answer = pdu.apiGenGetVarBind()
@@ -219,13 +223,11 @@ class AgentProxy:
 			except KeyError:
 				pass
 			if not df.called:
-				if self.verbose:
-					print 'timeout', self
+				log.debug( 'timeout check %r', self )
 				if retryCount:
 					timeout *= 1.5
 					retryCount -= 1
-					if self.verbose:
-						print '    trying again', timeout, retryCount
+					log.debug( 'timeout retry %r %r %r', self, timeout, retryCount )
 					request = self.encode(oids, self.community)
 					key = self.getRequestKey( request )
 					try:
@@ -240,8 +242,7 @@ class AgentProxy:
 						)
 						self.protocol.requests[key] = df, timer
 						return
-				if self.verbose:
-					print '    RAISING ERROR'
+				log.debug( """timeout raising error: %r""", self )
 				df.errback(defer.TimeoutError('SNMP request timed out'))
 		except Exception, err:
 			df.errback( failure.Failure() )
