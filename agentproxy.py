@@ -20,7 +20,7 @@ class AgentProxy:
 		protocol -- SNMPProtocol object to use for actual connection
 		"""
 		self.ip = str(ip)
-		self.port = int(port)
+		self.port = int(port or 161)
 		self.community = str(community)
 		self.snmpVersion = snmpVersion
 		if self.snmpVersion in ("2",'2c','v2','v2c'):
