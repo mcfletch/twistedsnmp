@@ -53,7 +53,8 @@ class BaseTestCase( unittest.TestCase ):
 		self.response = None
 		self.success = None
 		d.addCallbacks( self.onSuccess, self.onFailure )
-		reactor.run()
+		if not d.called:
+			reactor.run()
 ##		while self.response is None:
 ##			reactor.iterate()
 	def createStorage( self ):
