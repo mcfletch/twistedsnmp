@@ -12,6 +12,8 @@ class OIDStore:
 	fast retrieval characteristics, such as a bisect list,
 	or a BSDDB BTree database.
 	"""
+	def close( self ):
+		"""Close the OIDStore"""
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 
