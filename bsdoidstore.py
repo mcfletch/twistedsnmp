@@ -1,7 +1,7 @@
 """BSDDB BTree-based Shelve OID Storage"""
 import bsddb, shelve, traceback, sys
 from twistedsnmp import oidstore, errors
-import struct
+import struct, weakref
 
 def oidToSortable( oid ):
 	"""Convert a dotted-format OID to a sortable string"""
@@ -14,6 +14,25 @@ def sortableToOID( sortable ):
 		result.append( str(i) )
 		sortable = sortable[4:]
 	return '.%s'%( ".".join(result))
+
+class Closer( object ):
+	"""Close the OIDStore
+
+	This object avoids having a __del__ method defined on the
+	OIDStore object, which avoids the potential for memory
+	leaks.
+	"""
+	def __init__( self, client ):
+		"""Initialise the closer object"""
+		self.btree = client.btree
+	def __call__( self ):
+		"""Close and cleanup to prevent multiple calls"""
+		if self.btree:
+			self.btree.close()
+			self.btree = None
+	def __del__( self ):
+		"""Handle deletion of the closer object (close btree if necessary)"""
+		self()
 
 
 class BSDOIDStore(oidstore.OIDStore):
@@ -30,9 +49,7 @@ class BSDOIDStore(oidstore.OIDStore):
 		"""Initialise the storage with appropriate OIDs"""
 		self.btree = self.open( filename )
 		self.update( OIDs )
-	def __del__( self ):
-		"""Close the OID store (save to disk)"""
-		self.close()
+		self.close = Closer( self )
 	def open( self, filename, mode='c' ):
 		"""Open the given shelf as a BSDDB btree shelf
 
@@ -48,11 +65,6 @@ class BSDOIDStore(oidstore.OIDStore):
 			filename = shelve.BsdDbShelf( filename )
 		return filename
 	open = classmethod( open )
-	def close( self ):
-		"""Close the OIDStore"""
-		if self.btree:
-			self.btree.close()
-			self.btree = None
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 
