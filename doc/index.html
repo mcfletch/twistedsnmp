@@ -13,7 +13,7 @@ provides the following:</p>
   <li>get, set, getnext and getbulk Manager-side queries</li>
   <li>get, set, getnext and getbulk Agent-side services</li>
 </ul>
-<p>Eventual goals of the system (the project is just beginning):<br>
+<p>Eventual goals of the system:<br>
 </p>
 <ul>
   <li>provide access to all v1 and v2 SNMP functionality for writing
@@ -40,13 +40,34 @@ can install it by unpacking the source distribution and running:<br>
 
 
 <h2>Changes</h2>
+<p>Verison 0.2.8<br>
+</p>
+<ul>
+  <li>BSDOIDStore.close method added to actually save data to disk (useful, that :) )</li>
+  
+  <ul>
+    <li>Modifications to MirrorAgent to call close on OID store</li>
+  </ul>
+  <li>Bug-fixes in both OIDStore classes (old BSDDB data-files will be incompatible as a result)</li>
+  <ul>
+    <li>Essentially, the OIDs were being stored in too naive an order,
+so the oid 0.1.2 would sort after 0.1.12, i.e. using simple string
+sorting</li>
+    <li>BisectOIDStore now uses a tuple of integers while BSDOIDStore uses a packed binary string representation<br>
+    </li>
+  </ul>
+
+</ul>
 <p>Version 0.2.7<br>
 </p>
+
 <ul>
   <li>Refactoring of Agent class to allow for easier construction of
 mock objects that can simulate agent dialogues without needing to go
-through the SNMP encoding/decoding stages<br>
+through the SNMP encoding/decoding stages</li><li>Introduction of stand-alone errors module</li>
+  <li>Use of errors module in OIDStore classes to indicate failed OID lookup<br>
   </li>
+
 </ul>
 <p>Version 0.2.6<br>
 </p>
