@@ -65,9 +65,10 @@ class SNMPProtocol(protocol.DatagramProtocol):
 			except :
 				print response
 				raise
-		else:
-			# is a timed-out response that finally arrived
-			pass
+##		else:
+##			# is a timed-out response that finally arrived
+##			print 'timed out response for key %r'%(key,), response
+##			print 'pending', self.requests.keys()
 	def send(self, request, target):
 		"""Send a request (string) to the network"""
 		return self.transport.write( request, target )
@@ -102,8 +103,50 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				return response
 			except Exception, err:
 				pass
+				##traceback.print_exc()
 		return None
 
+def port( portNumber=-1, protocolClass=SNMPProtocol ):
+	"""Create a new listening TwistedSNMP port (with attached protocol)
+
+	portNumber -- a numeric port specifier, or a sequence of
+		numeric port specifiers to search
+		if not specified, defaults to range(20000,30000)
+	protocolClass -- the protocol class to create, will
+		be called with default arguments () to create the
+		protocol instance
+		
+		XXX should that be an instance? this is a convenience
+		method, but seems silly to restrict it to protocols
+		that have the same initialiser.  Oh well.
+
+	This is a convenience function which allows you to specify
+	a range of UDP ports which will be searched in order to
+	create a new TwistedSNMP protocol.  Since the client-side
+	protocol's port number is of minimal interest it is often
+	handy to have this functionality available.
+
+	returns Twisted UDP port object, with the SNMPProtocol
+		instance available as port.protocol on that object
+	"""
+	if portNumber == -1:
+		ports = xrange(25000,30000)
+	elif isinstance( portNumber, (int,long)):
+		ports = [portNumber]
+	else:
+		ports = portNumber
+	for port in ports:
+		try:
+			return reactor.listenUDP(
+				port, protocolClass(),
+			)
+		except twisted_error.CannotListenError:
+			pass
+	raise twisted_error.CannotListenError(
+		"""Could not listen on *any* port in our range of potential ports! %s"""%(
+			repr(ports)[:30],
+		),
+	)
 
 def test():
 	port = reactor.listenUDP(20000, SNMPProtocol() )
