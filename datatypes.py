@@ -4,7 +4,7 @@ This was written against PySNMP 3.3.x, apparently 3.4.x has
 some fixes to make this all cleaner, but I haven't had time
 to revisit the question just yet.
 """
-from pysnmp.proto import v2c, v1
+from twistedsnmp.pysnmpproto import v2c,v1
 
 class SimpleConverter:
 	"""Simple callable object that just does self.target(value.get())"""

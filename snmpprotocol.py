@@ -10,7 +10,7 @@ get on that port's protocol.
 """
 from twisted.internet import protocol, reactor
 from twisted.internet import error as twisted_error
-from pysnmp.proto import v2c, v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error
 import traceback
 from twistedsnmp import datatypes, agentproxy
 
@@ -49,9 +49,7 @@ class SNMPProtocol(protocol.DatagramProtocol):
 			print 'Bad response', address, repr(datagram)
 			return
 		key = self.getRequestKey( response, address )
-##		print 'key testing', key
 		if key in self.requests:
-##			print 'expected key', key
 			df,timer = self.requests[key]
 			if hasattr( timer, 'cancel' ):
 				try:
@@ -69,7 +67,7 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				raise
 		else:
 			# is a timed-out response that finally arrived
-			print 'unexpected key %r pending: %s'%(key, "\n".join([str(x) for x in self.requests.keys()]))
+			print 'unexpected key %r pending: %s'%(key, len(self.requests))
 			open( 'baddatagram.binary', 'wb').write( datagram )
 	def send(self, request, target):
 		"""Send a request (string) to the network"""

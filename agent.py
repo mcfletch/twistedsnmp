@@ -2,7 +2,7 @@
 from __future__ import generators
 import weakref
 from twistedsnmp import datatypes
-from pysnmp.proto import v2c, v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error
 from twistedsnmp.errors import noError, tooBig, noSuchName, badValue
 from twistedsnmp import errors
 

@@ -1,6 +1,6 @@
 """Protocol implementation for Agent/Manager-side API"""
 from twisted.internet import defer, protocol, reactor
-from pysnmp.proto import v2c, v1, error, rfc1155, rfc1902
+from twistedsnmp.pysnmpproto import v2c,v1, error
 from pysnmp import error as pysnmp_error
 from pysnmp.asn1 import error as asnerror
 

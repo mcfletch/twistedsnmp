@@ -1,9 +1,7 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from pysnmp.proto import error
-from pysnmp.proto.api import generic
-from pysnmp.proto import v2c, v1
+from twistedsnmp.pysnmpproto import v2c,v1, error
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 
@@ -179,7 +177,11 @@ class AgentProxy:
 			request = implementation.GetNextRequest()
 		else:
 			request = implementation.GetRequest()
-		request.apiGenSetCommunity( community )
+		try:
+			request.apiGenSetCommunity( community )
+		except AttributeError, err:
+			import pdb
+			pdb.set_trace()
 		pdu = request.apiGenGetPdu()
 		def oidFix( value, implementation=implementation ):
 			if isinstance( value, tuple ) and len(value) == 2:

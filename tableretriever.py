@@ -1,8 +1,7 @@
 """Helper object for the AgentProxy object"""
 from twisted.internet import defer, protocol, reactor
 from twisted.python import failure
-from pysnmp.proto import v2c, v1, error
-from pysnmp.proto.api import generic
+from twistedsnmp.pysnmpproto import v2c,v1, error
 import traceback, socket
 
 class TableRetriever( object ):

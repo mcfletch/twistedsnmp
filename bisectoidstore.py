@@ -2,7 +2,7 @@
 from __future__ import generators
 import bisect
 from twistedsnmp import agent, oidstore, errors
-from pysnmp.proto import v2c, v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error
 
 try:
 	enumerate
