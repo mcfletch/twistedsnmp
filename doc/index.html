@@ -1,9 +1,13 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html><head>
-  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>TwistedSNMP</title>
-  
-  <link rel="stylesheet" type="text/css" href="style/sitestyle.css"></head>
-<body style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);" link="#000080" vlink="#800080" alink="#008000">
+<html>
+<head>
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=windows-1252">
+  <title>TwistedSNMP</title>
+  <link rel="stylesheet" type="text/css" href="style/sitestyle.css">
+</head>
+<body style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);"
+ link="#000080" alink="#008000" vlink="#800080">
 <h1>TwistedSNMP<br>
 </h1>
 <p>TwistedSNMP is a set of SNMP protocol implementations for Python's
@@ -24,7 +28,8 @@ testing)</li>
 </ul>
 <p>Once complete, we can look at either incorporating the system into
 the PySNMP or Twisted distribution.&nbsp; For now, you can download
-TwistedSNMP from the <a href="https://sourceforge.net/projects/twistedsnmp/">project page</a>.<br>
+TwistedSNMP from the <a
+ href="https://sourceforge.net/projects/twistedsnmp/">project page</a>.<br>
 </p>
 <h2>Installation</h2>
 <p>TwistedSNMP is distributed as a Python distutils package.&nbsp; You
@@ -32,14 +37,24 @@ can install it by unpacking the source distribution and running:<br>
 </p>
 <div style="margin-left: 40px;">setup.py install<br>
 </div>
-<p>In the top level of the install directory.&nbsp; You will need both <a href="http://www.twistedmatrix.com/">Twisted</a> and <a href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed<br>
+<p>In the top level of the install directory.&nbsp; You will need both <a
+ href="http://www.twistedmatrix.com/">Twisted</a> and <a
+ href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed<br>
 </p>
 <h2>Documentation</h2>
-<p>At the moment, most of the documentation for the module is in the form of the auto-generated <a href="pydoc/twistedsnmp.html">PyDoc reference</a> API, which includes auto-generated documentation for <a href="pydoc/pysnmp.html">PySNMP</a>.&nbsp; You can find usage examples in the test sub-directory of the distribution.<br>
+<p>At the moment, most of the documentation for the module is in the
+form of the auto-generated <a href="pydoc/twistedsnmp.html">PyDoc
+reference</a> API, which includes auto-generated documentation for <a
+ href="pydoc/pysnmp.html">PySNMP</a>.&nbsp; You can find usage examples
+in the test sub-directory of the distribution.<br>
 </p>
-
-
 <h2>Changes</h2>
+<p>Version 0.2.10</p>
+<ul>
+  <li>Rewrite table-retrieval results-handling to be more robust and
+simple<br>
+  </li>
+</ul>
 <p>Version 0.2.9<br>
 </p>
 <ul>
@@ -51,64 +66,64 @@ value from something which calls a TwistedSNMP method).<br>
 </ul>
 <p>Version 0.2.8<br>
 </p>
-
 <ul>
-  <li>BSDOIDStore.close method added to actually save data to disk (useful, that :) )</li>
-  
+  <li>BSDOIDStore.close method added to actually save data to disk
+(useful, that :) )</li>
   <ul>
     <li>Modifications to MirrorAgent to call close on OID store</li>
   </ul>
-  <li>Bug-fixes in both OIDStore classes (old BSDDB data-files will be incompatible as a result)</li>
+  <li>Bug-fixes in both OIDStore classes (old BSDDB data-files will be
+incompatible as a result)</li>
   <ul>
     <li>Essentially, the OIDs were being stored in too naive an order,
 so the oid 0.1.2 would sort after 0.1.12, i.e. using simple string
 sorting</li>
-    <li>BisectOIDStore now uses a tuple of integers while BSDOIDStore uses a packed binary string representation<br>
+    <li>BisectOIDStore now uses a tuple of integers while BSDOIDStore
+uses a packed binary string representation<br>
     </li>
   </ul>
-
 </ul>
 <p>Version 0.2.7<br>
 </p>
-
 <ul>
   <li>Refactoring of Agent class to allow for easier construction of
 mock objects that can simulate agent dialogues without needing to go
-through the SNMP encoding/decoding stages</li><li>Introduction of stand-alone errors module</li>
-  <li>Use of errors module in OIDStore classes to indicate failed OID lookup<br>
+through the SNMP encoding/decoding stages</li>
+  <li>Introduction of stand-alone errors module</li>
+  <li>Use of errors module in OIDStore classes to indicate failed OID
+lookup<br>
   </li>
-
 </ul>
 <p>Version 0.2.6<br>
 </p>
-
 <ul>
-  <li>Mostly just documentation changes to reflect new project location URLs and the like.<br>
+  <li>Mostly just documentation changes to reflect new project location
+URLs and the like.<br>
   </li>
 </ul>
 <p>Version 0.2.5<br>
 </p>
-
 <ul>
-  <li>Altered timeout methods to catch exceptions within themselves and relay to the caller via the registered deferred object</li>
-  <li>Documentation enhancements</li><li>Patch to work around Python 2.3.x bug in the BSDDB wrapper class</li>
+  <li>Altered timeout methods to catch exceptions within themselves and
+relay to the caller via the registered deferred object</li>
+  <li>Documentation enhancements</li>
+  <li>Patch to work around Python 2.3.x bug in the BSDDB wrapper class</li>
   <li>Eliminated old algorithms for MassRetriever</li>
-  <li>Reduced default MassRetriever iteration delay to 0.005 instead of 0.01 seconds<br>
+  <li>Reduced default MassRetriever iteration delay to 0.005 instead of
+0.01 seconds<br>
   </li>
-
 </ul>
 <p>Version 0.2.4<br>
 </p>
-
 <ul>
   <li>Fixed bug with table request processing.<br>
   </li>
 </ul>
 <p>Version 0.2.3<br>
 </p>
-
 <ul>
-  <li>Rework of mass retriever algorithm (yet again) to be more robust when dealing with larger AgentProxy sets</li>
+  <li>Rework of mass retriever algorithm (yet again) to be more robust
+when dealing with larger AgentProxy sets</li>
   <ul>
     <li>Much simpler mechanism</li>
     <li>Throttles to initiate less than 200 queries/second by default,
@@ -119,26 +134,30 @@ thousand queries/second (it's Twisted's structure that requires the
 throttling).<br>
     </li>
   </ul>
-  <li>Internal rework so that timeouts are cancelled ASAP for messages received</li>
+  <li>Internal rework so that timeouts are cancelled ASAP for messages
+received</li>
   <ul>
-    <li>To prevent timeouts issuing before the system gets around to calling the callback</li>
+    <li>To prevent timeouts issuing before the system gets around to
+calling the callback</li>
   </ul>
-  <li>Discovered (as-yet-unfixed) bug in Agent's (as distinct from AgentProxy) processing of table requests</li>
+  <li>Discovered (as-yet-unfixed) bug in Agent's (as distinct from
+AgentProxy) processing of table requests</li>
   <ul>
-    <li>Basically it doesn't properly handle tables of different lengths.<br>
+    <li>Basically it doesn't properly handle tables of different
+lengths.<br>
     </li>
   </ul>
 </ul>
 <p>Version 0.2.2<br>
 </p>
-
 <ul>
   <li>Bug-fix in utilities/mirroragent.py<br>
   </li>
   <li>Test module cleanup for cross-platform operation<br>
   </li>
   <ul>
-    <li>Allow for operation when no bsddb module is available, as there are platforms on which it's not available by default</li>
+    <li>Allow for operation when no bsddb module is available, as there
+are platforms on which it's not available by default</li>
     <li>Use non-privileged port if the privileged 161 is not bindable<br>
     </li>
   </ul>
@@ -149,7 +168,6 @@ errors)<br>
 </ul>
 <p>Version 0.2.1<br>
 </p>
-
 <ul>
   <li>Cleaned up and reworked mass-query mechanism;</li>
   <ul>
@@ -157,16 +175,17 @@ errors)<br>
     </li>
     <li>fixed at least one logic bug in the batching machinery<br>
     </li>
-    <li>added adaptive heuristics for determining number of queries to keep in play</li><li>changes the api for retrieval in a backward-incompatible way<br>
+    <li>added adaptive heuristics for determining number of queries to
+keep in play</li>
+    <li>changes the api for retrieval in a backward-incompatible way<br>
     </li>
-
-  </ul><li>Fixed shallow bug in TableRetriever's handling of responses with unequal rootOID and (OID,value) set lengths<br>
+  </ul>
+  <li>Fixed shallow bug in TableRetriever's handling of responses with
+unequal rootOID and (OID,value) set lengths<br>
   </li>
-
 </ul>
 <p>Version 0.2.0<br>
 </p>
-
 <ul>
   <li>Complete refactoring of the client/manager-side API.&nbsp;
 Instead of requiring one port per managed agent, is able to manage any
@@ -180,7 +199,8 @@ object.</li>
 against a local server, and doesn't yet have balancing heuristics to
 throttle load in response to network response, but does appear to work.<br>
   </li>
-  <li>Dropped the snmpports module.&nbsp; It's no longer necessary with the new structure.</li>
+  <li>Dropped the snmpports module.&nbsp; It's no longer necessary with
+the new structure.</li>
   <li>Bug was discovered in Python 2.3's BSDDB module which affects the
 BSDDB storages, bug report submitted to the Python project, but for
 now, will not pass tests under Python 2.3.<br>
@@ -188,7 +208,6 @@ now, will not pass tests under Python 2.3.<br>
 </ul>
 <p>Version 0.1.5<br>
 </p>
-
 <ul>
   <li>Refactored the test-suite into its own package w/ sub-modules for
 the different test-types</li>
@@ -246,7 +265,12 @@ code</li>
   <li>Initial release<br>
   </li>
 </ul>
-<p class="footer" style="text-align: center;"><a href="http://twistedsnmp.sourceforge.net/">TwistedSNMP</a>&nbsp;
-is a <a href="http://sourceforge.net"> <img align="middle" alt="SourceForge.net Logo" style="border: 0px solid ; width: 88px; height: 31px;" src="http://sourceforge.net/sflogo.php?group_id=102250&amp;type=1"></a> Open-Source Project<br>
+<p class="footer" style="text-align: center;"><a
+ href="http://twistedsnmp.sourceforge.net/">TwistedSNMP</a>&nbsp;
+is a <a href="http://sourceforge.net"> <img alt="SourceForge.net Logo"
+ style="border: 0px solid ; width: 88px; height: 31px;"
+ src="http://sourceforge.net/sflogo.php?group_id=102250&amp;type=1"
+ align="middle"></a> Open-Source Project<br>
 </p>
-</body></html>
+</body>
+</html>
