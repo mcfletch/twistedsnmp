@@ -22,34 +22,38 @@ class DoUntilFinished:
 			)
 		self.defer = myDefer
 	def __call__( self, timeout=None ):
-		self.defer.addCallback( self.OnSuccess )
-		self.defer.addErrback( self.OnFailure )
+		self.defer.addCallbacks( self.OnSuccess, self.OnFailure )
 		if timeout:
 			reactor.callLater( timeout, self.OnTimeout )
-		while not self.finished:
-			reactor.iterate()
+		reactor.run()
 	def OnTimeout( self ):
 		"""On a timeout condition, raise an error"""
 		if not self.finished:
 			self.finished = 1
 			self.result = defer.TimeoutError('SNMP request timed out')
 			self.success = 0
+		reactor.crash()
 	def OnSuccess( self, result ):
 		if not self.finished:
 			self.finished = 1
 			self.result = result
 			self.success = 1
+		reactor.crash()
 	def OnFailure( self, errorMessage ):
 		if not self.finished:
 			self.finished = 1
 			self.result = errorMessage
 			self.success = 0
+		reactor.crash()
 
 def doUntil( *defers ):
 	"""Run a set of defers until complete"""
 	d = DoUntilFinished( *defers )
-	d()
-	return d.result
+	d( )
+	if not d.success:
+		raise d.result.value
+	else:
+		return d.result
 
 
 def synchronous( timeout, callable, *arguments, **named ):
