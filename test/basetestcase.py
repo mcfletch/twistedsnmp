@@ -15,6 +15,7 @@ class BaseTestCase( unittest.TestCase ):
 	version = 'v1'
 	oidsForTesting = [
 	]
+	ALLOW_CACHE = True
 	def setUp( self ):
 		"""Set up the agent to query as self.agent"""
 		ports = [161]+range(20000,25000)
@@ -40,6 +41,7 @@ class BaseTestCase( unittest.TestCase ):
 					community = "public",
 					snmpVersion = self.version,
 					protocol = self.clientPort.protocol,
+					allowCache = self.ALLOW_CACHE,
 				)
 				return
 		raise twisted_error.CannotListenError(
