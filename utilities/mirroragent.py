@@ -8,8 +8,19 @@ def main( proxy, oidStore, OIDs=('.1.3',) ):
 	def rowCallback( root, key,value, oidStore = oidStore):
 		print key, '-->', repr(value)
 		oidStore.setValue( key, value )
-	proxy.getTable( OIDs, recordCallback=rowCallback )
-	
+	df = proxy.getTable( OIDs, recordCallback=rowCallback )
+	def errorReporter( err ):
+		print 'ERROR', err
+		raise
+	def exiter( value, oidStore=oidStore ):
+		reactor.stop()
+		print 'closing'
+		oidStore.close()
+		return value
+	df.addCallback( exiter )
+	df.addErrback( errorReporter )
+	df.addCallback( exiter )
+	return df
 
 def openStore( oidStore ):
 	oidStore = bsdoidstore.BSDOIDStore(
@@ -51,4 +62,3 @@ baseoid -- dotted set of OIDs to retrieve from agent
 	)
 	reactor.callLater( 1, main, client, sys.argv[3], sys.argv[4:] )
 	reactor.run()
-
