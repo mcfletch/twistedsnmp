@@ -1,51 +1,56 @@
 from twisted.internet import reactor, defer
 
 __metaclass__ = type
-class Holder:
-	"""Class allowing synchronous calling of deferred functions"""
+
+class DoUntilFinished:
 	success = 0
 	finished = 0
 	timeout = 0
 	result = None
-	def __init__( self, callable, *arguments, **named ):
-		self.callable = callable
-		self.arguments = arguments
-		self.named = named
+	def __init__( self, *defers ):
+		"""Initialise the DoUntilFinished instance
+
+		defers -- Defer objects to be handled
+		"""
+		if not defers:
+			raise ValueError( """Need at least one Defer for DoUntilFinished""" )
+		elif len(defers) == 1:
+			myDefer = defers[0]
+		else:
+			myDefer = defer.DeferList(
+				defers
+			)
+		self.defer = myDefer
 	def __call__( self, timeout=None ):
-		"""Call the held callable, timeout after timeout seconds"""
-		print 'call'
-		df = self.callable( *self.arguments, **self.named )
-		df.addCallback( self.OnSuccess )
-		df.addErrback( self.OnFailure )
+		self.defer.addCallback( self.OnSuccess )
+		self.defer.addErrback( self.OnFailure )
 		if timeout:
 			reactor.callLater( timeout, self.OnTimeout )
-		return df
+		while not self.finished:
+			reactor.iterate()
 	def OnTimeout( self ):
 		"""On a timeout condition, raise an error"""
-		print 'OnTimeout'
 		if not self.finished:
 			self.finished = 1
 			self.result = defer.TimeoutError('SNMP request timed out')
 			self.success = 0
-		reactor.stop()
 	def OnSuccess( self, result ):
-		print 'OnSuccess'
 		if not self.finished:
 			self.finished = 1
 			self.result = result
 			self.success = 1
-		reactor.stop()
 	def OnFailure( self, errorMessage ):
-		print 'OnFailure'
 		if not self.finished:
 			self.finished = 1
 			self.result = errorMessage
 			self.success = 0
-		reactor.stop()
-	def doUntilFinish( self ):
-		"""Given a defered, add our callbacks and iterated until completed"""
-		while not self.finished:
-			reactor.iterate()
+
+def doUntil( *defers ):
+	"""Run a set of defers until complete"""
+	d = DoUntilFinished( *defers )
+	d()
+	return d.result
+
 
 def synchronous( timeout, callable, *arguments, **named ):
 	"""Call callable in twisted
@@ -56,14 +61,8 @@ def synchronous( timeout, callable, *arguments, **named ):
 
 	returns (success, result/error)
 	"""
-	holder = Holder( callable, *arguments, **named )
-	reactor.callLater(
-		0.0000005,
-		holder,
-		timeout,
-	)
-	holder.doUntilFinish( )
-	return holder.success, holder.result
+	df = callable( *arguments, **named )
+	return doUntil( df )
 
 if __name__ == "__main__":
 	import sys
@@ -106,14 +105,13 @@ from the command line."""
 		reactor.run()
 	else:
 		from twistedsnmp import agentproxy, snmpprotocol
-		port = reactor.listenUDP(
-			20000, snmpprotocol.SNMPProtocol(),
-		)
+		port = snmpprotocol.port()
 		proxy = agentproxy.AgentProxy(
 			ip = '127.0.0.1',
 			community = 'public',
 			protocol = port.protocol,
 			port = 20161,
 		)
-		print synchronous( 0, proxy.get, ('.1.3.6.1.2.1.1.2.0',) )
+		proxy.verbose = 1
+		print synchronous( 0, proxy.getTable, ('.1.3.6.1.2.1.1',) )
 		
