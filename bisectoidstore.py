@@ -64,10 +64,7 @@ class BisectOIDStore(oidstore.OIDStore):
 			if oldOID == oid:
 				self.OIDs[start] = (oid,value)
 				return oldValue
-			else:
-				self.OIDs.insert( start, (oid,value))
-		else:
-			self.OIDs.append( (oid,value))
+		self.OIDs.insert( start, (oid,value))
 		return None
 	def firstOID( self ):
 		"""Retrieve the first OID,value pair for the storage
@@ -109,7 +106,6 @@ class BisectOIDStore(oidstore.OIDStore):
 			# now get the real value...
 			if start < len(self.OIDs ):
 				key,value = self.OIDs[start]
-				
 				return sortableToOID(key),value
 			else:
 				# overflow error, reached end of our OID table with this OID
