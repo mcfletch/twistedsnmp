@@ -14,6 +14,14 @@ except NameError:
 			yield i,x
 			i += 1
 
+def oidToSortable( oid ):
+	"""Convert a dotted-format OID to a sortable string"""
+	return tuple([int(i) for i in oid.split('.') if i ])
+def sortableToOID( sortable ):
+	"""Convert sortable rep to a dotted-string representation"""
+	return '.%s'%( ".".join([str(x) for x in sortable]))
+
+
 class BisectOIDStore(oidstore.OIDStore):
 	"""In-memory OIDStore based on the standard bisect module
 
@@ -24,7 +32,11 @@ class BisectOIDStore(oidstore.OIDStore):
 	"""
 	def __init__( self, OIDs=None ):
 		"""Initialise the storage with appropriate OIDs"""
-		self.OIDs = OIDs or []
+		self.OIDs = []
+		if hasattr( OIDs, 'items' ):
+			OIDs = OIDs.items()
+		for key,value in OIDs:
+			self.setValue( key, value )
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 
@@ -32,9 +44,10 @@ class BisectOIDStore(oidstore.OIDStore):
 		request, (or a GETBULK request which specifies
 		inclusive operation).
 		"""
+		base = oidToSortable( base )
 		start = bisect.bisect( self.OIDs, (base,) )
 		try:
-			return (base, self.OIDs[start][1])
+			return (sortableToOID(base), self.OIDs[start][1])
 		except (IndexError,KeyError):
 			# do error reporting here
 			raise errors.OIDNameError(
@@ -47,6 +60,7 @@ class BisectOIDStore(oidstore.OIDStore):
 		This method is responsible for implementing the SET
 		request.
 		"""
+		oid = oidToSortable( oid )
 		start = bisect.bisect( self.OIDs, (oid,) )
 		if start < len(self.OIDs):
 			oldOID, oldValue = self.OIDs[ start ]
@@ -64,6 +78,7 @@ class BisectOIDStore(oidstore.OIDStore):
 		This method is responsible for implementing GETNEXT,
 		and GETBULK requests.
 		"""
+		base = oidToSortable( base )
 		start = bisect.bisect( self.OIDs, (base,) )
 		if start < len( self.OIDs ):
 			# require for all OIDs that they precisely match
@@ -83,7 +98,9 @@ class BisectOIDStore(oidstore.OIDStore):
 				start += 1
 			# now get the real value...
 			if start < len(self.OIDs ):
-				return self.OIDs[start]
+				key,value = self.OIDs[start]
+				
+				return sortableToOID(key),value
 			else:
 				# overflow error, reached end of our OID table with this OID
 				raise errors.OIDNameError( base, message="""OID is beyond end of table""" )

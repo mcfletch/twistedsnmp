@@ -1,6 +1,20 @@
 """BSDDB BTree-based Shelve OID Storage"""
 import bsddb, shelve, traceback, sys
 from twistedsnmp import oidstore, errors
+import struct
+
+def oidToSortable( oid ):
+	"""Convert a dotted-format OID to a sortable string"""
+	return "".join([struct.pack('>I',int(i)) for i in oid.split('.') if i ])
+def sortableToOID( sortable ):
+	"""Convert sortable rep to a dotted-string representation"""
+	result = []
+	while sortable:
+		(i,) = struct.unpack( '>I', sortable[:4])
+		result.append( str(i) )
+		sortable = sortable[4:]
+	return '.%s'%( ".".join(result))
+
 
 class BSDOIDStore(oidstore.OIDStore):
 	"""OIDStore implemented using (on-disk) BSDDB files
@@ -17,6 +31,9 @@ class BSDOIDStore(oidstore.OIDStore):
 		self.btree = self.open( filename )
 		if OIDs:
 			self.importValues( OIDs )
+	def __del__( self ):
+		"""Close the OID store (save to disk)"""
+		self.close()
 	def open( self, filename, mode='c' ):
 		"""Open the given shelf as a BSDDB btree shelf
 
@@ -32,6 +49,11 @@ class BSDOIDStore(oidstore.OIDStore):
 			filename = shelve.BsdDbShelf( filename )
 		return filename
 	open = classmethod( open )
+	def close( self ):
+		"""Close the OIDStore"""
+		if self.btree:
+			self.btree.close()
+			self.btree = None
 	def importValues( self, OIDs ):
 		"""Import values from the OID:value set passed
 
@@ -42,7 +64,7 @@ class BSDOIDStore(oidstore.OIDStore):
 		if hasattr( OIDs, 'items' ):
 			OIDs = OIDs.items()
 		for key,value in OIDs:
-			self.btree[key] = value
+			self.btree[oidToSortable(key)] = value
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 
@@ -50,8 +72,9 @@ class BSDOIDStore(oidstore.OIDStore):
 		request, (or a GETBULK request which specifies
 		inclusive operation).
 		"""
-		if self.btree.has_key( base ):
-			return base, self.btree[ base ]
+		encoded = oidToSortable( base )
+		if self.btree.has_key( encoded ):
+			return base, self.btree[ encoded ]
 		raise errors.OIDNameError( base, message="No such OID" )
 	def setValue( self, oid, value):
 		"""Set the given oid,value pair, returning old value
@@ -60,12 +83,14 @@ class BSDOIDStore(oidstore.OIDStore):
 		request.
 		"""
 		old = None
+		oid = oidToSortable( oid )
 		if self.btree.has_key( oid ):
 			try:
 				old = self.btree[ oid ]
 			except KeyError:
 				pass
 		self.btree[ oid ] = value
+		self.btree.sync()
 		return old
 	def nextOID( self, base ):
 		"""Get next OID,value pair after given base OID
@@ -74,7 +99,9 @@ class BSDOIDStore(oidstore.OIDStore):
 		and GETBULK requests.
 		"""
 		try:
-			oid, value = self.btree.set_location(base)
+			encoded = oidToSortable( base )
+			oid, value = self.btree.set_location(encoded)
+			oid = sortableToOID( oid )
 		except KeyError, err:
 			raise errors.OIDNameError(
 				base,
@@ -83,6 +110,7 @@ class BSDOIDStore(oidstore.OIDStore):
 		if oid == base:
 			try:
 				oid,value = self.btree.next()
+				oid = sortableToOID( oid )
 			except KeyError, err:
 				raise errors.OIDNameError(
 					base,
