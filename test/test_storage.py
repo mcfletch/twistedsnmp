@@ -1,6 +1,6 @@
 from twistedsnmp import bisectoidstore, agent
 import unittest
-from pysnmp.proto import v2c, v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error
 try:
 	from twistedsnmp import bsdoidstore
 except ImportError:

@@ -1,5 +1,5 @@
 from twistedsnmp.test import basetestcase
-from pysnmp.proto import v1
+from twistedsnmp.pysnmpproto import v1
 import unittest
 
 class SetRetrieverV1( basetestcase.BaseTestCase ):

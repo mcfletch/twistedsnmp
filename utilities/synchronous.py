@@ -81,7 +81,7 @@ from the command line."""
 	if sys.argv[1] == 'server':
 		# just setup something to serve a response
 		from twistedsnmp import agent, agentprotocol, bisectoidstore
-		from pysnmp.proto import v2c, v1, error
+		from twistedsnmp.pysnmpproto import v2c,v1, error
 		agentObject = reactor.listenUDP(
 			20161, agentprotocol.AgentProtocol(
 				snmpVersion = 'v1',
