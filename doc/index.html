@@ -111,6 +111,17 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.2.15<br>
+</p>
+<ul>
+  <li>Uses <a href="http://psyco.sourceforge.net/">psyco</a>, when
+available, to bind various classes in PySNMP which have been identified
+as causing significant slowdowns.</li>
+  <li>Splits out the OID-setting code from the message interpretation
+code in Agent so that it's easier to programmatically set OIDs on an
+Agent.<br>
+  </li>
+</ul>
 <p>Version 0.2.14<br>
 </p>
 <ul>
