@@ -66,7 +66,7 @@ class TableRetriever( object ):
 ##				print 'root', root
 ##				print 'key', key
 ##				print 'value', value
-				if OID(root).isaprefix(key) and not isinstance(value, v2c.EndOfMibView):
+				if OID(str(root)).isaprefix(str(key)) and not isinstance(value, v2c.EndOfMibView):
 					table = self.values.setdefault(root,{})
 					if not table.has_key(key):
 						table[key] = value
