@@ -62,13 +62,13 @@ class AgentProxy:
 			return dict(value)
 		df.addCallback( self.getResponseResults )
 		df.addCallback( asDictionary )
+		oids = [str(oid) for oid in oids ]
 		request = self.encode(oids, self.community)
 		key = self.getRequestKey( request )
 		try:
 			self.send(request.encode())
 		except socket.error, err:
 			return defer.fail(failure.Failure())
-		oids = [str(oid) for oid in oids ]
 		timer = reactor.callLater(timeout, self._timeout, key, df, oids, timeout, retryCount)
 		self.protocol.requests[key] = df, timer
 		return df
