@@ -1,8 +1,10 @@
 """Utility mechanism to retrieve OIDs/tables from large numbers of agents"""
 from __future__ import generators, nested_scopes
 from twisted.internet import defer, reactor, error
+from twisted.python import failure
 from twistedsnmp import agentproxy
 import traceback
+from twistedsnmp.logs import massretriever_log as log
 
 def proxies( protocol, addresses, proxyClass=agentproxy.AgentProxy ):
 	"""Given protocol and set of addresses, construct AgentProxies
@@ -23,7 +25,6 @@ class MassRetriever( object ):
 	The object wraps a single query, it cannot be shared among
 	multiple queries!
 	"""
-	verbose = 0
 	def __init__(
 		self, proxies,
 	):
@@ -141,11 +142,9 @@ class MassRetriever( object ):
 			will comingle, and potentially overwrite one another.
 		"""
 		self.successCount += 1
-		if self.verbose:
-			print 'SUCCESS',
-			if self.verbose > 2:
-				print value,
-			self.printStats()
+		log.info( 'success %r', proxy )
+		log.debug( '  success value %r: %r', proxy, value )
+		self.printStats()
 		key = proxy.ip,proxy.port
 		set = self.result.get( key )
 		if set is None:
@@ -161,8 +160,6 @@ class MassRetriever( object ):
 		oids -- the oids being queried
 		proxy -- the proxy being queried
 
-		if self.verbose, prints status information
-
 		Values are added to the (ip,port) dictionary for the proxy
 		with value None iff the root OID does not already exist in
 		the dictionary.
@@ -170,13 +167,19 @@ class MassRetriever( object ):
 		returns None
 		"""
 		self.errorCount = self.errorCount + 1
-		if self.verbose:
-			print 'ERROR  ',
-			if self.verbose > 2:
-				print err, 
-			self.printStats()
-		if not isinstance( err, error.TimeoutError ):
-			traceback.print_exc()
+		log.info( 'Error: %r %s', proxy, err )
+		self.printStats()
+		if isinstance( err, failure.Failure ):
+			actualError = err.value
+			trace = err.getTraceback()
+		else:
+			actualError = err
+			trace = log.getException( err )
+		if not isinstance( actualError, error.TimeoutError ):
+			log.error(
+				"""Retrieval for proxy %r encountered unexpected error: %s""",
+				proxy, trace,
+			)
 		if isinstance( err, (KeyboardInterrupt,SystemExit) ):
 			if not self.finalDefer.called:
 				self.finalDefer.errback( err )
@@ -189,15 +192,11 @@ class MassRetriever( object ):
 			if not set.has_key( oid ):
 				set[oid] = None
 		return None
-	if __debug__:
-		def printStats( self ):
-			"""Print heuristic stats for the retriever"""
-			print 'errors=%s success=%s total=%s'%(
-				self.errorCount,
-				self.successCount,
-				len(self.partialDefers),
-			)
-	else:
-		def printStats( self ):
-			"""Do nothing"""
-			
+	def printStats( self ):
+		"""Print heuristic stats for the retriever"""
+		log.info(
+			'errors=%s success=%s total=%s',
+			self.errorCount,
+			self.successCount,
+			len(self.partialDefers),
+		)

@@ -13,6 +13,7 @@ from twisted.internet import error as twisted_error
 from twistedsnmp.pysnmpproto import v2c,v1, error
 import traceback
 from twistedsnmp import datatypes, agentproxy
+from twistedsnmp.logs import protocol_log as log
 
 class SNMPProtocol(protocol.DatagramProtocol):
 	"""Base class for SNMP datagram protocol
@@ -46,7 +47,10 @@ class SNMPProtocol(protocol.DatagramProtocol):
 		"""
 		response = self.decode(datagram)
 		if response is None:
-			print 'Bad response', address, repr(datagram)
+			log.error(
+				"""Bad response from %r: %r""",
+				address, datagram,
+			)
 			return
 		key = self.getRequestKey( response, address )
 		if key in self.requests:
@@ -62,13 +66,20 @@ class SNMPProtocol(protocol.DatagramProtocol):
 					reactor.callLater(
 						0.001, df.callback, response
 					)
-			except :
-				print response
+			except Exception, err:
+				log.error(
+					"""Failure scheduling response for processing %r: %s""",
+					response,
+					log.getException(err),
+				)
 				raise
 		else:
 			# is a timed-out response that finally arrived
-			print 'unexpected key %r pending: %s'%(key, len(self.requests))
-			open( 'baddatagram.binary', 'wb').write( datagram )
+			log.error(
+				"""Unexpected request key %r, %r requests pending""",
+				key,
+				len(self.requests),
+			)
 	def send(self, request, target):
 		"""Send a request (string) to the network"""
 		return self.transport.write( request, target )
@@ -83,15 +94,13 @@ class SNMPProtocol(protocol.DatagramProtocol):
 		]:
 			try:
 				return target, request['pdu'][key]['request_id']
-			except KeyError:
+			except KeyError, err:
 				pass
-			except TypeError:
-				import pdb
-				pdb.set_trace()
-				print key
-				print request['pdu']
-				print request['pdu'][key]
-				print request['pdu'][key]['request_id']
+			except TypeError, err:
+				log.error(
+					"""Unexpected TypeError retrieving request key %r: %s""",
+					key, log.getException(err),
+				)
 		raise KeyError( """Unable to get a request key id from %s for target %s"""%( request, target))
 
 	def decode( self, message ):
@@ -103,7 +112,11 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				return response
 			except Exception, err:
 				pass
-				##traceback.print_exc()
+##				log.error(
+##					"""Failure decoding datagram %r: %s""",
+##					message,
+##					log.getException(err),
+##				)
 		return None
 
 def port( portNumber=-1, protocolClass=SNMPProtocol ):
