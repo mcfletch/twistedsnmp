@@ -1,7 +1,7 @@
 """Run all the test-suites"""
 import unittest, types
 
-from twistedsnmp.test import test_get, test_set, test_storage
+from twistedsnmp.test import test_get, test_set, test_storage, test_basic
 
 def moduleSuite( module ):
 	return unittest.TestLoader().loadTestsFromModule( module )
@@ -9,6 +9,7 @@ def moduleSuite( module ):
 suite = unittest.TestSuite( [
 	moduleSuite( module )
 	for module in [
+		test_basic,
 		test_get,
 		test_set,
 		test_storage,
@@ -16,8 +17,9 @@ suite = unittest.TestSuite( [
 ])
 
 if __name__ == "__main__":
-	DO_HOTSHOT = 1
-	DO_PROFILE = 1
+	DO_HOTSHOT = 0
+	DO_PROFILE = 0
+	DO_MEMLEAK = 0
 	DO_PSYCO = 0
 	if DO_PSYCO:
 		import psyco
@@ -39,5 +41,13 @@ if __name__ == "__main__":
 			p.print_stats()
 			p.dump_stats(profileFile)
 	else:
-		unittest.TextTestRunner(verbosity=2).run( suite )
+		if DO_MEMLEAK:
+			import gc
+			while 1:
+				unittest.TextTestRunner(verbosity=2).run( suite )
+				print 'collection', gc.collect()
+				
+		else:
+			unittest.TextTestRunner(verbosity=2).run( suite )
+		
 	
