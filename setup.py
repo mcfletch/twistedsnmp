@@ -30,8 +30,8 @@ if __name__ == "__main__":
 	### Now the actual set up call
 	setup (
 		name = "TwistedSNMP",
-		version = "0.2.5",
-		url = "http://members.rogers.com/mcfletch/programming",
+		version = "0.2.6",
+		url = "http://twistedsnmp.sourceforge.net/",
 		description = "SNMP Protocol for the Twisted Networking Framework",
 		author = "Mike C. Fletcher & Patrick K. O'Brien",
 		author_email = "mcfletch@users.sourceforge.net",
