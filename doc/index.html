@@ -27,8 +27,7 @@ Agent and Manager services</li>
 development (e.g. mirroring an SNMP Agent's OID tree for local query
 testing)</li>
 </ul>
-<p>Once complete, we can look at either incorporating the system into
-the PySNMP or Twisted distribution.&nbsp; For now, you can download
+<p>You can download
 TwistedSNMP from the <a
  href="https://sourceforge.net/projects/twistedsnmp/">project page</a>.&nbsp;
 If you have feedback, feel free to contact the <a
@@ -112,6 +111,20 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.2.14<br>
+</p>
+<ul>
+  <li>Eliminates potential memory leaks by reworking the __del__ method
+on BSDOIDStore objects</li>
+  <ul>
+    <li>Note: There is another memory leak for which I have a
+work-around available, but this leak is in Twisted itself (particularly
+the deferred object), so it's not part of the TwistedSNMP release</li>
+  </ul>
+  <li>Reduce log level for "Unexpected request key" message, as it is
+extremely common and so floods application logs<br>
+  </li>
+</ul>
 <p>Version 0.2.13<br>
 </p>
 <ul>
@@ -122,7 +135,7 @@ sub-storage is responsible for common application-level values<br>
   <li>Adds ability to insert callable objects, this allows you to
 insert functions that return calculated values for a given OID.&nbsp;
 Functions have the signature: <code>def callback( oid, storage ):</code>
-returning a value appropriate to the given OID.<br>
+returning a value appropriate to the given OID<br>
   </li>
 </ul>
 <p>Version 0.2.12<br>
