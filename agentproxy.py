@@ -23,12 +23,14 @@ class AgentProxy:
 		self.ip = str(ip)
 		self.port = int(port or 161)
 		self.community = str(community)
-		self.snmpVersion = snmpVersion
-		if self.snmpVersion in ("2",'2c','v2','v2c'):
-			self.implementation = v2c
-		else:
-			self.implementation = v1
+		self.snmpVersion, self.implementation = self.resolveVersion( snmpVersion)
 		self.protocol = protocol
+	def resolveVersion( self, value ):
+		"""Resolve a version specifier to a canonical version and an implementation"""
+		if self.snmpVersion in ("2",'2c','v2','v2c'):
+			return 'v2c', v2c
+		else:
+			return 'v1', v1
 	def __repr__( self ):
 		"""Get nice string representation of the proxy"""
 		ip,port,community,snmpVersion,protocol = self.ip,self.port,self.community,self.snmpVersion,self.protocol
@@ -123,7 +125,7 @@ class AgentProxy:
 		if self.verbose:
 			print 'getTable( %(roots)r, %(includeStart)r, %(recordCallback)r,%(retryCount)r )'%locals()
 		if not self.protocol:
-			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
+			raise ValueError( """Expected a non-null protocol object! Got %r"""%(self.protocol,))
 		roots = [str(oid) for oid in roots ]
 		retriever = tableretriever.TableRetriever(
 			self, roots, includeStart=includeStart,
