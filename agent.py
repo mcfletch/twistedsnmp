@@ -3,13 +3,10 @@ from __future__ import generators
 import weakref
 from twistedsnmp import datatypes
 from pysnmp.proto import v2c, v1, error
+from twistedsnmp.errors import noError, tooBig, noSuchName, badValue
+from twistedsnmp import errors
 
 __metaclass__ = type
-
-noError = 0
-tooBig = 1 # Response message would have been too large
-noSuchName = 2 #There is no such variable name in this MIB
-badValue = 3 # The value given has the wrong type or length
 
 try:
 	enumerate
@@ -50,21 +47,38 @@ class Agent:
 		returns the sent response
 		"""
 		variables = request.apiGenGetPdu().apiGenGetVarBind()
-		result = []
-		for key,_ in variables:
-			try:
-				result.append( self.dataStore.getExactOID( key ) )
-			except (IndexError,KeyError):
-				# do error reporting here
-				pass
 		response = request.reply()
 		pdu = response.apiGenGetPdu()
-		pdu.apiGenSetVarBind([
-			(key,datatypes.typeCoerce(value,implementation))
-			for (key,value) in result
-		])
+		try:
+			result = self.getOIDs( [key for (key,_) in variables] )
+		except errors.OIDNameError, err:
+			pdu.apiGenSetErrorStatus( err.errorCode )
+			pdu.apiGenSetErrorIndex( err.errorIndex + 1 ) # 1-indexed
+			pdu.apiGenSetVarBind(variables)
+			result = None
+		else:
+			pdu.apiGenSetVarBind([
+				(key,datatypes.typeCoerce(value,implementation))
+				for (key,value) in result
+			])
 		self.protocol.send( response.encode(), address )
 		return response
+	def getOIDs( self, oids ):
+		"""Get the given set of OIDs
+
+		oids -- sequence of OIDs to retrieve
+
+		return list of oid,value pairs
+		"""
+		result = []
+		for i,key in enumerate(oids):
+			try:
+				result.append( self.dataStore.getExactOID( key ) )
+			except errors.OIDNameError, err:
+				# do error reporting here
+				err.errorIndex = i
+				raise
+		return result
 	def getNext( self, request, address, implementation ):
 		"""Respond to an iterative get-next request
 
@@ -126,22 +140,15 @@ class Agent:
 		Section: 4.1.3, GetNextRequest
 		"""
 		variables = request.apiGenGetPdu().apiGenGetVarBind()
-		result = []
-		errorCode = None
-		errorIndex = None
-		for index, (base,_) in enumerate(variables):
-			try:
-				result.append( self.dataStore.nextOID( base ))
-			except NameError, err:
-				errorCode = noSuchName
-				errorIndex = index
-				break
 		response = request.reply()
 		pdu = response.apiGenGetPdu()
-		if errorCode:
-			pdu.apiGenSetErrorStatus( errorCode )
-			pdu.apiGenSetErrorIndex( errorIndex + 1 ) # 1-indexed
+		try:
+			result = self.getNextOIDs( [key for (key,_) in variables] )
+		except errors.OIDNameError, err:
+			pdu.apiGenSetErrorStatus( err.errorCode )
+			pdu.apiGenSetErrorIndex( err.errorIndex + 1 ) # 1-indexed
 			pdu.apiGenSetVarBind(variables)
+			result = None
 		else:
 			pdu.apiGenSetVarBind([
 				(key,datatypes.typeCoerce(value,implementation))
@@ -149,6 +156,21 @@ class Agent:
 			])
 		self.protocol.send( response.encode(), address )
 		return response
+	def getNextOIDs( self, oids ):
+		"""Get the given set of OIDs' next items
+
+		oids -- sequence of OIDs from which to retrieve next OIDs
+
+		return list of oid,value pairs
+		"""
+		result = []
+		for index, base in enumerate(oids):
+			try:
+				result.append( self.dataStore.nextOID( base ))
+			except errors.OIDNameError, err:
+				errorIndex = index
+				raise
+		return result
 
 	def getTable( self, request, address, implementation ):
 		"""Respond to an all-at-once (v2) get request
@@ -188,43 +210,64 @@ class Agent:
 		# up to maxRepetitions times.
 		nonRepeaters = max((request.apiGenGetPdu().apiGenGetNonRepeaters(),0))
 		maxRepetitions = max((request.apiGenGetPdu().apiGenGetMaxRepetitions(),0)) or 255
-		# Known as M, N and R in the spec...
-		nextIter = []
-		for index, (base,_) in enumerate(variables[:nonRepeaters]):
-			try:
-				oid,value = self.dataStore.nextOID( base )
-			except NameError, err:
-				oid = oid
-				value = v2c.EndOfMibView()
-			result.append( (oid,value) )
-		nextIter = variables[nonRepeaters:]
-		for repeat in range(maxRepetitions):
-			variables = nextIter
-			nextIter = []
-			foundGood = 0
-			for index, (base,_) in enumerate(variables):
-				try:
-					oid,value = self.dataStore.nextOID( base )
-					nextIter.append( (oid,value) )
-					foundGood = 1
-				except NameError, err:
-					oid = base
-					value = v2c.EndOfMibView()
-				result.append( (oid,value) )
-			if not foundGood:
-				break # just to save processing
+
 		response = request.reply()
 		pdu = response.apiGenGetPdu()
-		if errorCode:
-			pdu.apiGenSetErrorStatus( errorCode )
-			pdu.apiGenSetErrorIndex( errorIndex + 1 ) # 1-indexed
+
+		try:
+			result = self.getTableOIDs(
+				[ oid for (oid,_) in variables[:nonRepeaters] ],
+				[ oid for (oid,_) in variables[nonRepeaters:] ],
+				maxRepetitions,
+			)
+		except errors.OIDNameError, err:
+			# should never happen, but who knows...
+			pdu.apiGenSetErrorStatus( err.errorCode )
+			pdu.apiGenSetErrorIndex( err.errorIndex + 1 ) # 1-indexed
 			pdu.apiGenSetVarBind(variables)
+			result = None
 		else:
 			pdu.apiGenSetVarBind([
 				(key,datatypes.typeCoerce(value,implementation))
 				for (key,value) in result
 			])
 		self.protocol.send( response.encode(), address )
+		return response
+	def getTableOIDs( self, nonRepeating=(), repeating=(), maxRepetitions=255 ):
+		"""Get non-repeating and repeating OID values
+
+		nonRepeating -- sequence of OIDs for non-repeating retrieval
+		repeating -- sequence of OIDs for repeating retrieval
+		maxRepetitions -- maximum number of repetitions
+
+		return list of oid,value pairs
+		"""
+		# Known as M, N and R in the spec...
+		result = []
+		for index, base in enumerate(nonRepeating):
+			try:
+				oid,value = self.dataStore.nextOID( base )
+			except errors.OIDNameError, err:
+				oid = oid
+				value = v2c.EndOfMibView()
+			result.append( (oid,value) )
+		nextIter = repeating
+		for repeat in range(maxRepetitions):
+			variables = nextIter
+			nextIter = []
+			foundGood = 0
+			for index, base in enumerate(variables):
+				try:
+					oid,value = self.dataStore.nextOID( base )
+					nextIter.append( oid )
+					foundGood = 1
+				except errors.OIDNameError, err:
+					oid = base
+					value = v2c.EndOfMibView()
+				result.append( (oid,value) )
+			if not foundGood:
+				break # just to save processing
+		return result
 	def set( self, request, address, implementation ):
 		"""Set OIDs as given by request
 

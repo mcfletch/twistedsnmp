@@ -1,6 +1,6 @@
 """BSDDB BTree-based Shelve OID Storage"""
 import bsddb, shelve, traceback, sys
-from twistedsnmp import oidstore
+from twistedsnmp import oidstore, errors
 
 class BSDOIDStore(oidstore.OIDStore):
 	"""OIDStore implemented using (on-disk) BSDDB files
@@ -52,7 +52,7 @@ class BSDOIDStore(oidstore.OIDStore):
 		"""
 		if self.btree.has_key( base ):
 			return base, self.btree[ base ]
-		raise KeyError( base )
+		raise errors.OIDNameError( base, message="No such OID" )
 	def setValue( self, oid, value):
 		"""Set the given oid,value pair, returning old value
 
@@ -76,12 +76,18 @@ class BSDOIDStore(oidstore.OIDStore):
 		try:
 			oid, value = self.btree.set_location(base)
 		except KeyError, err:
-			raise NameError( """OID %r does not exist in the agent space"""%base )
+			raise errors.OIDNameError(
+				base,
+				message="OID not found in database"
+			)
 		if oid == base:
 			try:
 				oid,value = self.btree.next()
 			except KeyError, err:
-				raise NameError( """OID %r does not exist in the agent space"""%base )
+				raise errors.OIDNameError(
+					base,
+					message="OID appears to be last in database"
+				)
 		return oid, value
 
 

@@ -1,13 +1,8 @@
 """In-memory OIDStore based on the standard bisect module"""
 from __future__ import generators
 import bisect
-from twistedsnmp import agent, oidstore
+from twistedsnmp import agent, oidstore, errors
 from pysnmp.proto import v2c, v1, error
-
-noError = 0
-tooBig = 1 # Response message would have been too large
-noSuchName = 2 #There is no such variable name in this MIB
-badValue = 3 # The value given has the wrong type or length
 
 try:
 	enumerate
@@ -42,7 +37,10 @@ class BisectOIDStore(oidstore.OIDStore):
 			return (base, self.OIDs[start][1])
 		except (IndexError,KeyError):
 			# do error reporting here
-			pass
+			raise errors.OIDNameError(
+				base,
+				message="OID not found in database",
+			)
 	def setValue( self, oid, value):
 		"""Set the given oid,value pair, returning old value
 
@@ -72,7 +70,10 @@ class BisectOIDStore(oidstore.OIDStore):
 			# an OID in the OID set we publish...
 			oid,value = self.OIDs[start]
 			if oid != base and not oidstore.dumbPrefix( base, oid ):
-				raise NameError( """OID %r does not exist in the agent space""" )
+				raise errors.OIDNameError(
+					base,
+					message="Could not find OID in database",
+				)
 			elif oid != base and oidstore.dumbPrefix( base, oid ):
 				# if the found OID is prefixed by key, we want to return this OID
 				# otherwise we want to return the *next* item
@@ -85,7 +86,7 @@ class BisectOIDStore(oidstore.OIDStore):
 				return self.OIDs[start]
 			else:
 				# overflow error, reached end of our OID table with this OID
-				raise NameError( """OID is beyond end of table""" )
+				raise errors.OIDNameError( base, message="""OID is beyond end of table""" )
 		else:
 			# starting OID is beyond end of table
-			raise NameError( """OID is beyond end of table""" )
+			raise errors.OIDNameError( base, message="""OID is beyond end of table""" )
