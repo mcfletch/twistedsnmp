@@ -48,3 +48,12 @@ try:
 except ImportError, err:
 	from twistedsnmp import oid
 	USE_STRING_OIDS = True
+
+def cacheOIDEncoding( oid ):
+	"""Null operation when no univ module available"""
+try:
+	from pysnmp.asn1.encoding.ber import univ
+	cacheOIDEncoding = univ.ObjectIdentifierMixIn.berInternEncoding
+	CAN_CACHE_OIDS = True
+except (ImportError,AttributeError), err:
+	CAN_CACHE_OIDS = False
