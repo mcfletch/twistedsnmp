@@ -63,7 +63,10 @@ class TableRetriever( object ):
 				# XXX See note in areWeDone regarding problem with
 				# having a single root no longer continuing, likely
 				# indexing problems eventually
-				if OID(root).isaprefix(key):
+##				print 'root', root
+##				print 'key', key
+##				print 'value', value
+				if OID(root).isaprefix(key) and not isinstance(value, v2c.EndOfMibView):
 					table = self.values.setdefault(root,{})
 					if not table.has_key(key):
 						table[key] = value
