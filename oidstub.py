@@ -2,5 +2,5 @@
 
 def OID( value ):
 	"""Null function to pretend to be oid.OID"""
-	return value
+	return str(value)
 

@@ -46,7 +46,7 @@ try:
 	# This seems to slow down rather than speed up the OID class...
 	#psyco.bind(oid.OID)
 except ImportError, err:
-	from twistedsnmp import oid
+	from twistedsnmp import oidstub as oid
 	USE_STRING_OIDS = True
 
 def cacheOIDEncoding( oid ):
