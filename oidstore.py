@@ -1,4 +1,6 @@
 """Abstract interface for OID Storage objects"""
+from __future__ import generators
+from twistedsnmp import errors
 __metaclass__ = type
 
 class OIDStore:
@@ -20,6 +22,11 @@ class OIDStore:
 		This method is responsible for implementing the GET
 		request, (or a GETBULK request which specifies
 		inclusive operation).
+		"""
+	def firstOID( self ):
+		"""Retrieve the first OID,value pair for the storage
+
+		Raises OIDNameError if there are no pairs available
 		"""
 	def nextOID( self, base ):
 		"""Get next OID,value pair after given base OID
@@ -46,25 +53,42 @@ class OIDStore:
 		"""Given a valueSet, load given values into storage
 
 		valueSet -- A set of OID:value mappings in these forms
-			[ (oid,value) ] # value can also be a dictionary of oid:value mappings
 			{ rootOID : { oid : value }}
+			OIDStore instance -- iterable as a (key,value) producing sequence
+			[ (oid,value) ] # value can also be a dictionary or OIDStore (as seen above)
+			[ dict, OIDStore, ... ] # i.e. just a sequence of dicts or storages
 
 		XXX Should allow for passing in another OIDStore, but that
 			Will require a first() method for all OIDStores
 		"""
 		if hasattr( valueSet, 'items' ):
-			return self.update( valueSet.items())
+			valueSet = valueSet.items()
 		if not valueSet:
 			return 0
-		# okay, now should be list of tuples
+		# okay, now should be list of tuples or an OIDStore
+		# or a list of OIDStores/dictionaries
 		count = 0
-		for key, value in valueSet:
-			if isinstance( value, dict ):
-				count += self.update( value.items())
+		for item in valueSet:
+			if isinstance( item, (dict,OIDStore)):
+				count += self.update( item )
 			else:
-				count += 1
-				self.setValue( key, value )
+				key, value = item
+				if isinstance( value, (dict, OIDStore) ):
+					count += self.update( value )
+				else:
+					count += 1
+					self.setValue( key, value )
 		return count
+	def __iter__( self ):
+		"""Create an iterator object for this OIDStore"""
+		try:
+			oid,value = self.firstOID()
+			yield oid, value
+			while oid:
+				oid,value = self.nextOID( oid )
+				yield oid, value
+		except errors.OIDNameError, err:
+			pass
 
 def dumbPrefix( key, oid ):
 	"""Is the key == oid or a parent of OID?

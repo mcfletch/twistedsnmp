@@ -69,6 +69,19 @@ class BisectOIDStore(oidstore.OIDStore):
 		else:
 			self.OIDs.append( (oid,value))
 		return None
+	def firstOID( self ):
+		"""Retrieve the first OID,value pair for the storage
+
+		Raises OIDNameError if there are no pairs available
+		"""
+		if self.OIDs:
+			oid,value = self.OIDs[0]
+			return sortableToOID( oid ), value
+		else:
+			raise errors.OIDNameError(
+				(),
+				message="""No OIDs available in this storage""",
+			)
 	def nextOID( self, base ):
 		"""Get next OID,value pair after given base OID
 
