@@ -1,9 +1,10 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
+from twisted.python import failure
 from pysnmp.proto import v2c, v1, error
 from pysnmp.proto.api import generic
 from twistedsnmp import datatypes, tableretriever
-import traceback
+import traceback, socket
 
 __metaclass__ = type
 
@@ -61,7 +62,10 @@ class AgentProxy:
 		df.addCallback( asDictionary )
 		request = self.encode(oids, self.community)
 		key = self.getRequestKey( request )
-		self.send(request.encode())
+		try:
+			self.send(request.encode())
+		except socket.error, err:
+			return defer.fail(failure.Failure())
 		oids = [str(oid) for oid in oids ]
 		timer = reactor.callLater(timeout, self._timeout, key, df, oids, timeout, retryCount)
 		self.protocol.requests[key] = df, timer
@@ -87,7 +91,10 @@ class AgentProxy:
 				raise error.ProtoError( """Set failure""", pdu.apiGenGetErrorStatus() )
 			return response
 		df.addCallback( raiseOnError )
-		self.send(request.encode())
+		try:
+			self.send(request.encode())
+		except socket.error, err:
+			return defer.fail(failure.Failure())
 		timer = reactor.callLater(timeout, self._timeout, key, df, oids, timeout, retryCount)
 		self.protocol.requests[key] = df, timer
 		return df
@@ -201,16 +208,21 @@ class AgentProxy:
 						print '    trying again', timeout, retryCount
 					request = self.encode(oids, self.community)
 					key = self.getRequestKey( request )
-					self.send(request.encode())
-					timer = reactor.callLater(
-						timeout,
-						self._timeout, key, df, oids, timeout, retryCount
-					)
-					self.protocol.requests[key] = df, timer
-					return
+					try:
+						self.send(request.encode())
+					except socket.error, err:
+						df.errback( failure.Failure() )
+						return
+					else:
+						timer = reactor.callLater(
+							timeout,
+							self._timeout, key, df, oids, timeout, retryCount
+						)
+						self.protocol.requests[key] = df, timer
+						return
 				if self.verbose:
 					print '    RAISING ERROR'
 				df.errback(defer.TimeoutError('SNMP request timed out'))
 		except Exception, err:
-			df.errback( err )
+			df.errback( failure.Failure() )
 		

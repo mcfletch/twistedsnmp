@@ -1,8 +1,9 @@
 """Helper object for the AgentProxy object"""
 from twisted.internet import defer, protocol, reactor
+from twisted.python import failure
 from pysnmp.proto import v2c, v1, error
 from pysnmp.proto.api import generic
-import traceback
+import traceback, socket
 
 class TableRetriever( object ):
 	"""Object for retrieving an entire table from an SNMP agent
@@ -111,15 +112,25 @@ class TableRetriever( object ):
 		df.addCallback( self.proxy.getResponseResults )
 		df.addCallback( self.integrateNewRecord, rootOIDs = roots[:] )
 
-		self.proxy.send(request.encode())
+		try:
+			self.proxy.send(request.encode())
+		except socket.error, err:
+			if retryCount <= 0:
+				failObject = failure.Failure()
+				self.df.errback(failObject)
+				return
+			# wait timeout period before trying again...
+			# but reduce timeout period to prevent waiting
+			# too long before informing the user of delays...
+			delay *= .75
 
 		key = self.proxy.getRequestKey( request )
-
 		timer = reactor.callLater(
 			self.timeout,
 			self.tableTimeout,
 			df, key, oids, roots, includeStart, retryCount-1, delay
 		)
+
 		self.proxy.protocol.requests[key] = df, timer
 
 		return df
@@ -154,6 +165,7 @@ class TableRetriever( object ):
 		if not, passes on request & schedules next iteration
 		if so, returns None
 		"""
+##		print 'response', self.proxy.getRequestKey( response )
 		newOIDs = response.apiGenGetPdu().apiGenGetVarBind()
 		if response.apiGenGetPdu().apiGenGetErrorStatus():
 			errorIndex = response.apiGenGetPdu().apiGenGetErrorIndex() - 1
