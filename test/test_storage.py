@@ -39,6 +39,18 @@ class StorageTest( unittest.TestCase ):
 		result = store.nextOID( '.1.3.6.1.2.1.1.1.0' )
 		assert result[0] == '.1.3.6.1.2.1.1.2.0', result
 		assert result[1] == 32, result
+	def testNextBig( self ):
+		store = self.createStorage(
+			[
+				('.1.3.6.1.2.1.1.1.0', 'Hello world!'),
+				('.1.3.6.1.2.12.1.2.0', 32),
+				('.1.3.6.1.2.2.1.3.0', v1.IpAddress('127.0.0.1')),
+				('.1.3.6.1.2.1.1.4.0', v1.OctetString('From Octet String')),
+			]
+		)
+		result = store.nextOID( '.1.3.6.1.2.2.1.3.0' )
+		assert result[0] == '.1.3.6.1.2.12.1.2.0', result
+		assert result[1] == 32, result
 		
 if bsdoidstore:
 	class BSDTest( object ):
@@ -48,7 +60,23 @@ if bsdoidstore:
 				OIDs = oids,
 			)
 	class BSDStorageTest( BSDTest, StorageTest ):
-		pass
+		def testRetention( self ):
+			"""Test that oids are stored and retrieved properly"""
+			store = self.createStorage(
+				[
+					('.1.3.6.1.2.1.1.1.0', 'Hello world!'),
+					('.1.3.6.1.2.1.1.2.0', 32),
+					('.1.3.6.1.2.1.1.3.0', v1.IpAddress('127.0.0.1')),
+					('.1.3.6.1.2.1.1.4.0', v1.OctetString('From Octet String')),
+				]
+			)
+			store.close()
+			newStore = bsdoidstore.BSDOIDStore( 'temp.bsd' )
+			result = newStore.getExactOID( '.1.3.6.1.2.1.1.1.0' )
+			assert result[0] == '.1.3.6.1.2.1.1.1.0', result
+			assert result[1] == 'Hello world!', result
+			
+
 
 
 if __name__ == "__main__":
