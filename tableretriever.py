@@ -17,7 +17,7 @@ class TableRetriever( object ):
 	# use iterative retrieval even on v2c ports.
 	bulk = 1
 	finished = 0
-	def __init__( self, proxy, roots, includeStart=0, retryCount=4, timeout= 2.0 ):
+	def __init__( self, proxy, roots, includeStart=0, retryCount=4, timeout= 2.0, maxRepetitions=128 ):
 		"""Initialise the retriever
 
 		proxy -- the AgentProxy instance we want to use for
@@ -29,6 +29,8 @@ class TableRetriever( object ):
 		retryCount -- number of retries
 		timeout -- initial timeout, is multipled by 1.5 on each
 			timeout iteration.
+		maxRepetitions -- max records to request with a single
+			bulk request
 		"""
 		self.proxy = proxy
 		self.roots = roots
@@ -36,6 +38,7 @@ class TableRetriever( object ):
 		self.retryCount = retryCount
 		self.timeout = timeout
 		self.values = {} # {rootOID: {OID: value}} mapping
+		self.maxRepetitions = maxRepetitions
 	def __call__( self, recordCallback=None ):
 		"""Collect results, call recordCallback for each retrieved record
 
@@ -106,6 +109,7 @@ class TableRetriever( object ):
 			self.proxy.community,
 			next= not includeStart,
 			bulk = (self.bulk and self.proxy.getImplementation() is v2c),
+			maxRepetitions = self.maxRepetitions
 		)
 
 		roots = roots[:]

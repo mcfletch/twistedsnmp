@@ -1,12 +1,14 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from pysnmp.proto import v2c, v1, error
+from pysnmp.proto import error
 from pysnmp.proto.api import generic
+from pysnmp.proto import v2c, v1
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 
 __metaclass__ = type
+DEFAULT_BULK_REPETITION_SIZE = 128
 
 class AgentProxy:
 	"""Proxy object for querying a remote agent"""
@@ -101,7 +103,12 @@ class AgentProxy:
 		self.protocol.requests[key] = df, timer
 		return df
 		
-	def getTable( self, roots, includeStart=0, recordCallback=None, retryCount=4, timeout= 2.0 ):
+	def getTable(
+		self, roots, includeStart=0,
+		recordCallback=None,
+		retryCount=4, timeout= 2.0,
+		maxRepetitions= DEFAULT_BULK_REPETITION_SIZE,
+	):
 		"""Convenience method for creating and running a TableRetriever
 
 		roots -- root OIDs to retrieve
@@ -116,6 +123,9 @@ class AgentProxy:
 		retryCount -- number of retries
 		timeout -- initial timeout, is multipled by 1.5 on each
 			timeout iteration.
+		maxRepetitions -- size for each block requested from the
+			server, i.e. how many records to download at a single
+			time
 
 		Will use bulk downloading when available (i.e. if
 		we have implementation v2c, not v1).
@@ -130,6 +140,7 @@ class AgentProxy:
 		retriever = tableretriever.TableRetriever(
 			self, roots, includeStart=includeStart,
 			retryCount=retryCount, timeout= timeout,
+			maxRepetitions = maxRepetitions,
 		)
 		if self.verbose:
 			retriever.verbose = 1
@@ -150,13 +161,18 @@ class AgentProxy:
 	def getRequestKey( self, request ):
 		"""Get the request key from a request/response"""
 		return self.protocol.getRequestKey( request, (self.ip, self.port) )
-	def encode( self, oids, community, next=0, bulk=0, set=0 ):
+	def encode(
+		self, oids, community,
+		next=0, bulk=0, set=0,
+		maxRepetitions=DEFAULT_BULK_REPETITION_SIZE,
+	):
 		"""Encode a datagram message"""
 		if self.verbose:
 			print 'encode( %(oids)r, %(community)r, %(next)r, %(bulk)r, %(set)r)'%locals()
 		implementation = self.getImplementation()
 		if bulk:
 			request = implementation.GetBulkRequest()
+			request.apiGenGetPdu().apiGenSetMaxRepetitions( maxRepetitions )
 		elif set:
 			request = implementation.SetRequest()
 		elif next:
