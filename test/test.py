@@ -45,7 +45,7 @@ if __name__ == "__main__":
 			import gc
 			while 1:
 				unittest.TextTestRunner(verbosity=2).run( suite )
-				print 'collection', gc.collect()
+				#print 'collection', gc.collect()
 				
 		else:
 			unittest.TextTestRunner(verbosity=2).run( suite )

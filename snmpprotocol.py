@@ -47,7 +47,7 @@ class SNMPProtocol(protocol.DatagramProtocol):
 		"""
 		response = self.decode(datagram)
 		if response is None:
-			log.error(
+			log.warn(
 				"""Bad response from %r: %r""",
 				address, datagram,
 			)
@@ -75,7 +75,7 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				raise
 		else:
 			# is a timed-out response that finally arrived
-			log.error(
+			log.info(
 				"""Unexpected request key %r, %r requests pending""",
 				key,
 				len(self.requests),
