@@ -4,12 +4,13 @@ from twisted.internet import defer, reactor, error
 from twistedsnmp import agentproxy
 import traceback
 
-def proxies( protocol, addresses ):
+def proxies( protocol, addresses, proxyClass=agentproxy.AgentProxy ):
 	"""Given protocol and set of addresses, construct AgentProxies
 
 	protocol -- SNMPProtocol instance
 	addresses -- tuples of (ip,port,[community,[version]]) to be
 		passed to the AgentProxy constructor.
+	proxyClass -- the proxy class to use for the retrieval
 	"""
 	return [
 		agentproxy.AgentProxy( protocol=protocol, *args )
