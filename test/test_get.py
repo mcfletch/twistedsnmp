@@ -1,7 +1,7 @@
 from __future__ import nested_scopes
 from twisted.internet import reactor
 import unittest
-from twistedsnmp import agent, agentprotocol
+from twistedsnmp import agent, agentprotocol, twinetables
 from twistedsnmp import snmpprotocol, massretriever
 from twistedsnmp.test import basetestcase
 from pysnmp.proto import v2c, v1, error
@@ -218,7 +218,29 @@ class MassRetrieverTest( basetestcase.BaseTestCase ):
 		retriever.printStats()
 		assert retriever.successCount == GOOD_COUNT, """Expected %s valid responses, got %s"""%(GOOD_COUNT, retriever.successCount )
 		assert retriever.errorCount == BAD_COUNT, """Expected %s valid responses, got %s"""%(GOOD_COUNT, retriever.successCount )
+
+class LargeTableTest( basetestcase.BaseTestCase ):
+	"""Test for full retrieval of a large table"""
+	version = 'v2'
+	oidsForTesting = [
+		('.1.3.6.1.2.1.1.%s'%i, 32)
+		for i in range(1024)
+	] + [
+		('.1.3.6.1.2.1.2.4', v1.OctetString('From Octet String')),
+	]
+	def testLargeTable( self ):
+		"""Do we retrieve all records for a large table?"""
+		d = self.client.getTable( [
+			'.1.3.6.1.2.1.1'
+		] )
+		self.doUntilFinish( d )
+		assert self.success, """Failed to retrieve"""
+		perRecord = twinetables.twineTables( self.response, self.response.keys())
+		assert len(perRecord) == 1024, """Didn't get 1024 records, got %r"""%(len(perRecord))
 		
+class LargeTableTestv2c( LargeTableTest ):
+	"""Test for full retrieval of a large table"""
+	version = 'v1'
 
 if __name__ == "__main__":
 	unittest.main()
