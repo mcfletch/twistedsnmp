@@ -8,7 +8,10 @@ def main( proxy, oidStore, OIDs=('.1.3',) ):
 	def rowCallback( root, key,value, oidStore = oidStore):
 		print key, '-->', repr(value)
 		oidStore.setValue( key, value )
-	df = proxy.getTable( OIDs, recordCallback=rowCallback )
+	df = proxy.getTable(
+		OIDs, retryCount=10,
+		recordCallback=rowCallback
+	)
 	def errorReporter( err ):
 		print 'ERROR', err
 		raise
