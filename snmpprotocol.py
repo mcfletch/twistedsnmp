@@ -49,7 +49,9 @@ class SNMPProtocol(protocol.DatagramProtocol):
 			print 'Bad response', address, repr(datagram)
 			return
 		key = self.getRequestKey( response, address )
+##		print 'key testing', key
 		if key in self.requests:
+##			print 'expected key', key
 			df,timer = self.requests[key]
 			if hasattr( timer, 'cancel' ):
 				try:
@@ -65,10 +67,10 @@ class SNMPProtocol(protocol.DatagramProtocol):
 			except :
 				print response
 				raise
-##		else:
-##			# is a timed-out response that finally arrived
-##			print 'timed out response for key %r'%(key,), response
-##			print 'pending', self.requests.keys()
+		else:
+			# is a timed-out response that finally arrived
+			print 'unexpected key %r pending: %s'%(key, "\n".join([str(x) for x in self.requests.keys()]))
+			open( 'baddatagram.binary', 'wb').write( datagram )
 	def send(self, request, target):
 		"""Send a request (string) to the network"""
 		return self.transport.write( request, target )
