@@ -1,7 +1,7 @@
 from __future__ import nested_scopes
 from twisted.internet import reactor
 import unittest
-from twistedsnmp import agent, agentprotocol, twinetables
+from twistedsnmp import agent, agentprotocol, twinetables, agentproxy
 from twistedsnmp import snmpprotocol, massretriever
 from twistedsnmp.test import basetestcase
 from pysnmp.proto import v2c, v1, error
@@ -17,6 +17,10 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		('.1.3.6.1.2.1.2.2.0', 32),
 		('.1.3.6.1.2.1.2.3.0', v1.IpAddress('127.0.0.1')),
 		('.1.3.6.1.2.1.2.4.0', v1.OctetString('From Octet String')),
+	] + [
+		('.1.3.6.1.2.1.3.%s.0'%i, 32)
+		for i in xrange( 512 )
+	] + [
 		('.1.3.6.2.1.0', 'Hello world!'),
 		('.1.3.6.2.2.0', 32),
 		('.1.3.6.2.3.0', v1.IpAddress('127.0.0.1')),
@@ -144,7 +148,23 @@ class GetRetrieverV2C( GetRetrieverV1 ):
 		] )
 		self.doUntilFinish( d )
 		assert self.success, self.response
-		assert self.client.messageCount == 1, """Took %s messages to retrieve with bulk table, should only take 1"""%( self.client.messageCount ,)
+		expected = (len(self.oidsForTesting)/ agentproxy.DEFAULT_BULK_REPETITION_SIZE)+1
+		assert self.client.messageCount <= expected, """Took %s messages to retrieve with bulk table, should take less than %r"""%( self.client.messageCount , expected)
+	def test_tableGetAllMaxSize( self ):
+		"""Does tabular retrieval respect passed maxSize?"""
+		def send(request, client= self.client):
+			"""Send a request (string) to the network"""
+			client.messageCount += 1
+			client.protocol.send(request, (client.ip,client.port))
+		self.client.messageCount = 0
+		self.client.send = send
+		d = self.client.getTable( [
+			'.1.3.6'
+		], maxRepetitions=16 )
+		self.doUntilFinish( d )
+		assert self.success, self.response
+		expected = (len(self.oidsForTesting)/ 16)-1
+		assert self.client.messageCount > expected, """Took %s messages to retrieve with bulk table, should take more than %r with maxRepetitions = 16"""%( self.client.messageCount , expected)
 
 if basetestcase.bsdoidstore:
 	class GetRetrieverV1BSD( basetestcase.BSDBase, GetRetrieverV1 ):
@@ -218,7 +238,7 @@ class MassRetrieverTest( basetestcase.BaseTestCase ):
 		retriever.printStats()
 		assert retriever.successCount == GOOD_COUNT, """Expected %s valid responses, got %s"""%(GOOD_COUNT, retriever.successCount )
 		assert retriever.errorCount == BAD_COUNT, """Expected %s valid responses, got %s"""%(GOOD_COUNT, retriever.successCount )
-
+		
 class LargeTableTest( basetestcase.BaseTestCase ):
 	"""Test for full retrieval of a large table"""
 	version = 'v2'
