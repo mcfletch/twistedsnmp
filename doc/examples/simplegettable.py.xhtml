@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title>P:\twistedsnmp\doc\examples\simplegettable.py</title>
+	<style type="text/css">
+	<![CDATA[
+	/* Used abbreviations: */
+	/* key:  Keywords */
+	/* typ:  Types and type modifiers */
+	/* str:  Strings */
+	/* num:  Numbers */
+	/* com:  Comments */
+	/* esc:  Escape characters */
+	/* dir:  Directive lines */
+	/* dstr: Strings within directive lines */
+	/* sym:  Symbols */
+	/* line: Line numbers */
+
+	pre	{ color:#000000; background-color:#ffffff; font-size:10pt; font-family:Courier;}
+	.key	{ color:#B26818; }
+	.num	{ color:#ff0000; }
+	.typ	{ color:#00ff00; }
+	.esc	{ color:#ff22ff; }
+	.str	{ color:#ff0000; }
+	.dstr	{ color:#ff0000; }
+	.com	{ color:#0000ff; }
+	.dir	{ color:#ff22ff; }
+	.sym	{ color:#000000; }
+	.line	{ color:#0000ff; }
+	]]>
+	</style>
+</head>
+<body>
+<pre><span class="line">    1 </span><span class="str">&quot;&quot;&quot;Trivial example to retrieve an OID from a remote Agent&quot;&quot;&quot;</span>
+<span class="line">    2 </span><span class="key">from </span>twisted.internet <span class="key">import </span>reactor
+<span class="line">    3 </span><span class="key">from </span>twistedsnmp <span class="key">import </span>snmpprotocol, agentproxy
+<span class="line">    4 </span><span class="key">import </span>pprint
+<span class="line">    5 </span>
+<span class="line">    6 </span><span class="key">def </span>main<span class="sym">( </span>proxy, oids <span class="sym">)</span>:
+<span class="line">    7 </span>    <span class="str">&quot;&quot;&quot;Do a getTable on proxy for OIDs and store in oidStore&quot;&quot;&quot;</span>
+<span class="line">    8 </span>    df = proxy.getTable<span class="sym">(
+</span><span class="line">    9 </span><span class="sym">        </span>oids, timeout=<span class="num">.25</span>, retryCount=<span class="num">5
+</span><span class="line">   10 </span><span class="num">    </span><span class="sym">)
+</span><span class="line">   11 </span><span class="sym">    </span>df.addCallback<span class="sym">( </span>printResults <span class="sym">)
+</span><span class="line">   12 </span><span class="sym">    </span>df.addCallback<span class="sym">( </span>exiter <span class="sym">)
+</span><span class="line">   13 </span><span class="sym">    </span>df.addErrback<span class="sym">( </span>errorReporter <span class="sym">)
+</span><span class="line">   14 </span><span class="sym">    </span>df.addErrback<span class="sym">( </span>exiter <span class="sym">)
+</span><span class="line">   15 </span><span class="sym">    </span><span class="key">return </span>df
+<span class="line">   16 </span>
+<span class="line">   17 </span><span class="key">def </span>printResults<span class="sym">( </span>result <span class="sym">)</span>:
+<span class="line">   18 </span>    <span class="key">print </span><span class="str">'Results:'</span>
+<span class="line">   19 </span>    pprint.pprint<span class="sym">( </span>result <span class="sym">)
+</span><span class="line">   20 </span><span class="sym">    </span><span class="key">return </span>result
+<span class="line">   21 </span>
+<span class="line">   22 </span><span class="key">def </span>errorReporter<span class="sym">( </span>err <span class="sym">)</span>:
+<span class="line">   23 </span>    <span class="key">print </span><span class="str">'ERROR'</span>, err.getTraceback<span class="sym">()
+</span><span class="line">   24 </span><span class="sym">    </span><span class="key">return </span>err
+<span class="line">   25 </span><span class="key">def </span>exiter<span class="sym">( </span>value <span class="sym">)</span>:
+<span class="line">   26 </span>    reactor.stop<span class="sym">()
+</span><span class="line">   27 </span><span class="sym">    </span><span class="key">return </span>value
+<span class="line">   28 </span>
+<span class="line">   29 </span>
+<span class="line">   30 </span><span class="key">if </span>__name__ == <span class="str">&quot;__main__&quot;</span>:
+<span class="line">   31 </span>    <span class="key">import </span>sys, logging
+<span class="line">   32 </span>    logging.basicConfig<span class="sym">()
+</span><span class="line">   33 </span><span class="sym">    </span><span class="com"># need to get the ip address
+</span><span class="line">   34 </span><span class="com"></span>    usage = <span class="str">&quot;&quot;&quot;Usage:
+</span><span class="line">   35 </span><span class="str">    simplegettable ipAddress community baseoid...
+</span><span class="line">   36 </span><span class="str">
+</span><span class="line">   37 </span><span class="str">ipAddress -- dotted IP address of the agent
+</span><span class="line">   38 </span><span class="str">community -- community string for the agent
+</span><span class="line">   39 </span><span class="str">baseoid -- dotted set of OIDs to retrieve from agent
+</span><span class="line">   40 </span><span class="str">&quot;&quot;&quot;</span>
+<span class="line">   41 </span>    <span class="key">if len</span><span class="sym">(</span>sys.argv<span class="sym">) </span>&lt; <span class="num">3</span>:
+<span class="line">   42 </span>        <span class="key">print </span>usage
+<span class="line">   43 </span>        sys.exit<span class="sym">( </span><span class="num">1 </span><span class="sym">)
+</span><span class="line">   44 </span><span class="sym">    </span>ipAddress = sys.argv<span class="sym">[</span><span class="num">1</span><span class="sym">]
+</span><span class="line">   45 </span><span class="sym">    </span><span class="com"># choose random port in range 25000 to 30000
+</span><span class="line">   46 </span><span class="com"></span>    port = snmpprotocol.port<span class="sym">()
+</span><span class="line">   47 </span><span class="sym">    </span>proxy = agentproxy.AgentProxy<span class="sym">(
+</span><span class="line">   48 </span><span class="sym">        </span>ipAddress, <span class="num">161</span>,
+<span class="line">   49 </span>        community = sys.argv<span class="sym">[</span><span class="num">2</span><span class="sym">]</span>,
+<span class="line">   50 </span>        snmpVersion = <span class="str">'v2'</span>,
+<span class="line">   51 </span>        protocol = port.protocol,
+<span class="line">   52 </span>    <span class="sym">)
+</span><span class="line">   53 </span><span class="sym">    </span><span class="key">if not </span>sys.argv<span class="sym">[</span><span class="num">3</span>:<span class="sym">]</span>:
+<span class="line">   54 </span>        oids = <span class="sym">[
+</span><span class="line">   55 </span><span class="sym">            </span><span class="str">'.1.3.6.1.2.1.1'</span>, <span class="com"># system tables
+</span><span class="line">   56 </span><span class="com"></span>        <span class="sym">]
+</span><span class="line">   57 </span><span class="sym">    </span><span class="key">else</span>:
+<span class="line">   58 </span>        oids = sys.argv<span class="sym">[</span><span class="num">3</span>:<span class="sym">]
+</span><span class="line">   59 </span><span class="sym">    </span>reactor.callWhenRunning<span class="sym">( </span>main, proxy, oids <span class="sym">)
+</span><span class="line">   60 </span><span class="sym">    </span>reactor.run<span class="sym">()</span>
+</pre>
+</body>
+</html>
+<!--XHTML generated by highlight 2.0-23, http://www.andre-simon.de/-->

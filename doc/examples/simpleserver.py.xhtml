@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title>P:\twistedsnmp\doc\examples\simpleserver.py</title>
+	<style type="text/css">
+	<![CDATA[
+	/* Used abbreviations: */
+	/* key:  Keywords */
+	/* typ:  Types and type modifiers */
+	/* str:  Strings */
+	/* num:  Numbers */
+	/* com:  Comments */
+	/* esc:  Escape characters */
+	/* dir:  Directive lines */
+	/* dstr: Strings within directive lines */
+	/* sym:  Symbols */
+	/* line: Line numbers */
+
+	pre	{ color:#000000; background-color:#ffffff; font-size:10pt; font-family:Courier;}
+	.key	{ color:#B26818; }
+	.num	{ color:#ff0000; }
+	.typ	{ color:#00ff00; }
+	.esc	{ color:#ff22ff; }
+	.str	{ color:#ff0000; }
+	.dstr	{ color:#ff0000; }
+	.com	{ color:#0000ff; }
+	.dir	{ color:#ff22ff; }
+	.sym	{ color:#000000; }
+	.line	{ color:#0000ff; }
+	]]>
+	</style>
+</head>
+<body>
+<pre><span class="line">    1 </span><span class="str">&quot;&quot;&quot;Simple example of an Agent for testing&quot;&quot;&quot;</span>
+<span class="line">    2 </span><span class="key">from </span>twisted.internet <span class="key">import </span>reactor
+<span class="line">    3 </span><span class="key">from </span>twisted.internet <span class="key">import </span>error as twisted_error
+<span class="line">    4 </span><span class="key">from </span>twistedsnmp <span class="key">import </span>agent, agentprotocol, bisectoidstore
+<span class="line">    5 </span><span class="key">try</span>:
+<span class="line">    6 </span>    <span class="key">from </span>twistedsnmp <span class="key">import </span>bsdoidstore
+<span class="line">    7 </span><span class="key">except ImportError</span>:
+<span class="line">    8 </span>    <span class="key">import </span>warnings
+<span class="line">    9 </span>    warnings.warn<span class="sym">( </span><span class="str">&quot;&quot;&quot;No BSDDB OID Storage available for testing&quot;&quot;&quot;</span> <span class="sym">)
+</span><span class="line">   10 </span><span class="sym">    </span>bsdoidstore = None
+<span class="line">   11 </span>
+<span class="line">   12 </span><span class="key">def </span>createAgent<span class="sym">( </span>oids <span class="sym">)</span>:
+<span class="line">   13 </span>    ports = <span class="sym">[</span><span class="num">161</span><span class="sym">]</span>+<span class="key">range</span><span class="sym">(</span><span class="num">20000</span>,<span class="num">25000</span><span class="sym">)
+</span><span class="line">   14 </span><span class="sym">    </span><span class="key">for </span>port <span class="key">in </span>ports:
+<span class="line">   15 </span>        <span class="key">try</span>:
+<span class="line">   16 </span>            agentObject = reactor.listenUDP<span class="sym">(
+</span><span class="line">   17 </span><span class="sym">                </span>port, agentprotocol.AgentProtocol<span class="sym">(
+</span><span class="line">   18 </span><span class="sym">                    </span>snmpVersion = <span class="str">'v2c'</span>,
+<span class="line">   19 </span>                    agent = agent.Agent<span class="sym">(
+</span><span class="line">   20 </span><span class="sym">                        </span>dataStore = bisectoidstore.BisectOIDStore<span class="sym">(
+</span><span class="line">   21 </span><span class="sym">                            </span>OIDs = oids,
+<span class="line">   22 </span>                        <span class="sym">)</span>,
+<span class="line">   23 </span>                    <span class="sym">)</span>,
+<span class="line">   24 </span>                <span class="sym">)</span>,
+<span class="line">   25 </span>            <span class="sym">)
+</span><span class="line">   26 </span><span class="sym">        </span><span class="key">except </span>twisted_error.CannotListenError:
+<span class="line">   27 </span>            <span class="key">pass
+</span><span class="line">   28 </span><span class="key">        else</span>:
+<span class="line">   29 </span>            <span class="key">return </span>agentObject, port
+<span class="line">   30 </span>
+<span class="line">   31 </span>testingOIDs = {
+<span class="line">   32 </span>    <span class="str">'.1.3.6.1.2.1.1.1.0'</span>: <span class="str">'Some tool out in the field'</span>,
+<span class="line">   33 </span>    <span class="str">'.1.3.6.1.2.1.1.2.0'</span>: <span class="str">'.1.3.6.1.4.1.88.3.1'</span>,
+<span class="line">   34 </span>    <span class="str">'.1.3.6.1.2.1.1.3.0'</span>: <span class="num">558566090</span>,
+<span class="line">   35 </span>    <span class="str">'.1.3.6.1.2.1.1.4.0'</span>: <span class="str">&quot;support&#64;somewhere.ca&quot;</span>,
+<span class="line">   36 </span>    <span class="str">'.1.3.6.1.2.1.1.5.0'</span>: <span class="str">&quot;NameOfSystem&quot;</span>,
+<span class="line">   37 </span>    <span class="str">'.1.3.6.1.2.1.1.6.0'</span>: <span class="str">&quot;SomeHeadEnd, West Hinterlands, Canada&quot;</span>,
+<span class="line">   38 </span>}
+<span class="line">   39 </span>
+<span class="line">   40 </span><span class="key">def </span>main<span class="sym">(</span>oids=testingOIDs<span class="sym">)</span>:
+<span class="line">   41 </span>    agent, port = createAgent<span class="sym">( </span>oids <span class="sym">)
+</span><span class="line">   42 </span><span class="sym">
+</span><span class="line">   43 </span><span class="sym"></span><span class="key">if </span>__name__ == <span class="str">&quot;__main__&quot;</span>:
+<span class="line">   44 </span>    reactor.callWhenRunning<span class="sym">( </span>main <span class="sym">)
+</span><span class="line">   45 </span><span class="sym">    </span>reactor.run<span class="sym">()
+</span><span class="line">   46 </span><span class="sym"></span>
+</pre>
+</body>
+</html>
+<!--XHTML generated by highlight 2.0-23, http://www.andre-simon.de/-->
