@@ -1,9 +1,14 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html><head>
-  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>TwistedSNMP</title>
-  
-  <link rel="stylesheet" type="text/css" href="style/sitestyle.css"></head>
-<body style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);" alink="#008000" link="#000080" vlink="#800080">
+<html lang="en-ca">
+<head>
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=windows-1252">
+  <title>TwistedSNMP</title>
+  <link rel="stylesheet" type="text/css" href="style/sitestyle.css">
+</head>
+<body
+ style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); direction: ltr;"
+ link="#000080" alink="#008000" vlink="#800080">
 <h1>TwistedSNMP<br>
 </h1>
 <p>TwistedSNMP is a set of SNMP protocol implementations for Python's
@@ -24,21 +29,26 @@ testing)</li>
 </ul>
 <p>Once complete, we can look at either incorporating the system into
 the PySNMP or Twisted distribution.&nbsp; For now, you can download
-TwistedSNMP from the <a href="https://sourceforge.net/projects/twistedsnmp/">project page</a>.&nbsp; If you have feedback, feel free to contact the <a href="http://www.vrplumber.com/">author</a>.<br>
+TwistedSNMP from the <a
+ href="https://sourceforge.net/projects/twistedsnmp/">project page</a>.&nbsp;
+If you have feedback, feel free to contact the <a
+ href="http://www.vrplumber.com/">author</a>.<br>
 </p>
 <h2>Installation</h2>
-
 <p>TwistedSNMP is distributed as a Python distutils package.&nbsp; You
 can install it by unpacking the source distribution and running:<br>
 </p>
 <div style="margin-left: 40px;">setup.py install<br>
 </div>
-<p>In the top level of the install directory.&nbsp; You will need both <a href="http://www.twistedmatrix.com/">Twisted</a> and <a href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed<br>
+<p>In the top level of the install directory.&nbsp; You will need both <a
+ href="http://www.twistedmatrix.com/">Twisted</a> and <a
+ href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed<br>
 </p>
 <h2>Documentation</h2>
 <p>At the moment, most of the documentation for the module is in the
 form of the auto-generated <a href="pydoc/twistedsnmp.html">PyDoc
-reference</a> API, which includes auto-generated documentation for <a href="pydoc/pysnmp.html">PySNMP</a>.&nbsp; You can find usage examples
+reference</a> API, which includes auto-generated documentation for <a
+ href="pydoc/pysnmp.html">PySNMP</a>.&nbsp; You can find usage examples
 in the test sub-directory of the distribution.<br>
 </p>
 <h3>Usage</h3>
@@ -47,7 +57,12 @@ remote SNMP Agents under the assumption that the code will be used to
 implement Manager-side applications.&nbsp; At the moment, it does not
 support Trap handling.<br>
 </p>
-<p>For manager-side operations, we can use the port function in the <a href="pydoc/twistedsnmp.snmpprotocol.html">snmpprotocol module</a> to create a new Twisted port object with an attached SNMPProtocol object.&nbsp; With this, we can create any number of <a href="pydoc/twistedsnmp.agentproxy.html">AgentProxy</a> objects which provide the API we use for querying the SNMP Agent.<br>
+<p>For manager-side operations, we can use the port function in the <a
+ href="pydoc/twistedsnmp.snmpprotocol.html">snmpprotocol module</a> to
+create a new Twisted port object with an attached SNMPProtocol
+object.&nbsp; With this, we can create any number of <a
+ href="pydoc/twistedsnmp.agentproxy.html">AgentProxy</a> objects which
+provide the API we use for querying the SNMP Agent.<br>
 </p>
 <pre>port = snmpprotocol.port()<br>proxy = agentproxy.AgentProxy(<br>	ipAddress, 161,<br>	community = sys.argv[2],<br>	snmpVersion = 'v2',<br>	protocol = port.protocol,<br>)<br></pre>
 <p>Once we have the AgentProxy, we have three major entry-points.&nbsp;
@@ -55,7 +70,8 @@ The first is "get", which retrieves single oid values.&nbsp; You can
 see a full usage example in <a href="examples/simpleget.py.xhtml">simpleget.py</a>:<br>
 </p>
 <pre>df = proxy.get(<br>	oids, timeout=.25, retryCount=5<br>)<br></pre>
-<p>the deferred object returned from the get method will fire with a dictionary mapping <code>{ OID: value }</code>
+<p>the deferred object returned from the get method will fire with a
+dictionary mapping <code>{ OID: value }</code>
 for each oid in oids.&nbsp; OIDs which were not present on the agent
 will return None for their value.&nbsp; If the Agent does not return a
 value, or returns an error, then the deferred will fire it's errback
@@ -66,44 +82,71 @@ for each oid in the list of oids passed in.&nbsp; You can see a full
 usage example in <a href="examples/simplegettable.py.xhtml">simplegettable.py</a>:<br>
 </p>
 <pre>df = proxy.getTable(<br>	oids, timeout=.25, retryCount=5<br>)<br></pre>
-<p>the deferred object returned from the getTable method will fire with a dictionary mapping <code>{ rootOID: { OID : value} }</code>
-for each rootOID in oids.&nbsp; rootOIDs which were not present on the agent will
-return None instead of the dictionary of <code>{ OID : value}</code> pairs.&nbsp; If the Agent does not return a value, or
+<p>the deferred object returned from the getTable method will fire with
+a dictionary mapping <code>{ rootOID: { OID : value} }</code>
+for each rootOID in oids.&nbsp; rootOIDs which were not present on the
+agent will
+return None instead of the dictionary of <code>{ OID : value}</code>
+pairs.&nbsp; If the Agent does not return a value, or
 returns an error, then the deferred will fire it's errback chain with
 the returned error.</p>
-<p>The third entry-point is "set", which takes a dictionary of <code>{ OID : value}</code> pairs and uploads the values to the Agent.&nbsp; Usage example in <a href="examples/simpleset.py.xhtml">simpleset.py</a>:<br>
+<p>The third entry-point is "set", which takes a dictionary of <code>{
+OID : value}</code> pairs and uploads the values to the Agent.&nbsp;
+Usage example in <a href="examples/simpleset.py.xhtml">simpleset.py</a>:<br>
 </p>
 <pre>df = proxy.set(<br>	oidSet, timeout=.25, retryCount=5<br>)<br></pre>
 <p>At the moment the return value for the deferred object is just the
 raw SNMP message returned from the agent.&nbsp; This may be changed to
 be something useful at some point.<br>
 </p>
-<p>For Agent-side operations, hopefully the <a href="examples/simpleserver.py.xhtml">simpleserver.py</a>
+<p>For Agent-side operations, hopefully the <a
+ href="examples/simpleserver.py.xhtml">simpleserver.py</a>
 sample will get you started on how to set up testing agents (keep in
 mind that the goal for these agents in the current codebase is solely
 to test the Manager-side implementations, so they are rather
-primitive).&nbsp; There are <a href="pydoc/twistedsnmp.bisectoidstore.html">bisect</a> (in-memory) and <a href="pydoc/twistedsnmp.bsdoidstore.html">BSDDB</a>-based OIDStores available.<br>
+primitive).&nbsp; There are <a
+ href="pydoc/twistedsnmp.bisectoidstore.html">bisect</a> (in-memory)
+and <a href="pydoc/twistedsnmp.bsdoidstore.html">BSDDB</a>-based
+OIDStores available.<br>
 </p>
 <p>
 </p>
-
 <h2>Changes</h2>
+<p>Version 0.2.13<br>
+</p>
+<ul>
+  <li>Adds ability to insert sub-OIDStores in BisectOIDStore objects,
+this allows you to compose OIDStores such that a given (shared)
+sub-storage is responsible for common application-level values<br>
+  </li>
+  <li>Adds ability to insert callable objects, this allows you to
+insert functions that return calculated values for a given OID.&nbsp;
+Functions have the signature: <code>def callback( oid, storage ):</code>
+returning a value appropriate to the given OID.<br>
+  </li>
+</ul>
 <p>Version 0.2.12<br>
 </p>
 <ul>
   <li>Work around what appears to be a memory leak in deferred objects
-holding references to objects which also hold references to the deferred</li><li>Fix
+holding references to objects which also hold references to the deferred</li>
+  <li>Fix
 for memory leak where tabular retrieval times out, was doing an
 incorrect test to determine whether to delete the key, so never deleted
 it</li>
-  <li>Switch to use of Python's standard logging module for all debug output</li>
+  <li>Switch to use of Python's standard logging module for all debug
+output</li>
   <ul>
-    <li>Note: This will require that you set up a logging handler, e.g. by calling <code>logging.basicConfig()</code> during your application's initialisation procedure</li>
+    <li>Note: This will require that you set up a logging handler, e.g.
+by calling <code>logging.basicConfig()</code> during your
+application's initialisation procedure</li>
   </ul>
   <li>Switch to using an internal registration point for PySNMP modules
 (to avoid problems when PySNMP 4 comes out with an entirely new
 organisation), shouldn't affect client modules save if they want to
-create <code>v2c</code> objects, if so, importing <code>v2c</code> from <code>twistedsnmp.pysnmpproto</code> is the way to go to keep in synch with the version being used by TwistedSNMP.</li>
+create <code>v2c</code> objects, if so, importing <code>v2c</code>
+from <code>twistedsnmp.pysnmpproto</code> is the way to go to keep in
+synch with the version being used by TwistedSNMP.</li>
   <ul>
     <li>Note: PySNMP 4.0 alpha is not supported yet, I'm waiting for
 the API to stabilise before trying to support it (it looks like a lot
@@ -112,11 +155,9 @@ TwistedSNMP).</li>
   </ul>
   <li>A bit more documentation including usage examples.<br>
   </li>
-
 </ul>
 <p>Version 0.2.11<br>
 </p>
-
 <ul>
   <li>Allow for passing in maxRepetitions for getBulk requests, this
 simply controls the size of the window requested from the Agent, which
@@ -125,7 +166,6 @@ want a small table<br>
   </li>
 </ul>
 <p>Version 0.2.10</p>
-
 <ul>
   <li>Rewrite table-retrieval results-handling to be more robust and
 simple<br>
@@ -181,7 +221,6 @@ URLs and the like.<br>
 </p>
 <ul>
   <li>Altered timeout methods to catch exceptions within themselves and
-
 relay to the caller via the registered deferred object</li>
   <li>Documentation enhancements</li>
   <li>Patch to work around Python 2.3.x bug in the BSDDB wrapper class</li>
@@ -342,7 +381,12 @@ code</li>
   <li>Initial release<br>
   </li>
 </ul>
-<p class="footer" style="text-align: center;"><a href="http://twistedsnmp.sourceforge.net/">TwistedSNMP</a>&nbsp;
-is a <a href="http://sourceforge.net"> <img alt="SourceForge.net Logo" style="border: 0px solid ; width: 88px; height: 31px;" src="http://sourceforge.net/sflogo.php?group_id=102250&amp;type=1" align="middle"></a> Open-Source Project<br>
+<p class="footer" style="text-align: center;"><a
+ href="http://twistedsnmp.sourceforge.net/">TwistedSNMP</a>&nbsp;
+is a <a href="http://sourceforge.net"> <img alt="SourceForge.net Logo"
+ style="border: 0px solid ; width: 88px; height: 31px;"
+ src="http://sourceforge.net/sflogo.php?group_id=102250&amp;type=1"
+ align="middle"></a> Open-Source Project<br>
 </p>
-</body></html>
+</body>
+</html>
