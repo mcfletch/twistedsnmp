@@ -1,7 +1,7 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from twistedsnmp.pysnmpproto import v2c,v1, error, oid
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid, cacheOIDEncoding, CAN_CACHE_OIDS
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 from twistedsnmp.logs import agentproxy_log as log
@@ -15,6 +15,8 @@ class AgentProxy:
 	"""Proxy object for querying a remote agent"""
 	verbose = 0
 	CACHE = {}
+	if CAN_CACHE_OIDS:
+		cacheOIDEncoding = cacheOIDEncoding
 	def __init__(
 		self, ip, port=161, 
 		community='public', snmpVersion = '1', 
@@ -73,9 +75,9 @@ class AgentProxy:
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 		oids = [OID(oid) for oid in oids ]
-		request = self.encode(oids, self.community)
-		key = self.getRequestKey( request )
 		try:
+			request = self.encode(oids, self.community)
+			key = self.getRequestKey( request )
 			self.send(request.encode())
 		except socket.error, err:
 			return defer.fail(failure.Failure())
@@ -200,7 +202,7 @@ class AgentProxy:
 		next -- whether this is to be a getnext query 
 		bulk -- whether this is to be a getbulk query
 		maxRepetitions -- max number of repeating values for getbulk
-		allowCache -- if True, and self.allowCache and not set and not next,
+		allowCache -- if True, and self.allowCache and not set,
 			then we will store and re-use request objects.  allowCache is 
 			used by the  tabular retrieval code to avoid caching queries 
 			beyond the first, as these are likely to be highly variable.
@@ -209,13 +211,22 @@ class AgentProxy:
 			'encode( %r, %r, %r, %r, %r, %r )',
 			oids, community, next, bulk, set, maxRepetitions,
 		)
-		doCache = allowCache and self.allowCache and (not set) and (not next)
+		doCache = allowCache and self.allowCache and (not set)
 		if doCache:
-			cacheKey = bulk,tuple(oids),community,self.snmpVersion,maxRepetitions
+			if bulk:
+				pduKey = 'get_bulk_request'
+			elif next:
+				pduKey = 'get_next_request'
+			else:
+				pduKey = 'get_request'
+			cacheKey = pduKey,tuple(oids),community,self.snmpVersion,maxRepetitions
 			request = self.CACHE.get( cacheKey )
 			if request is not None:
 				# this is hacky, initialValue is the incrementer for the global value
-				request.apiGenGetPdu()['request_id'].initialValue()
+				pdu = request['pdu'][pduKey]
+				#current = pdu['request_id'].get()
+				pdu['request_id'].inc(1)
+				#assert pdu['request_id'].get() == current + 1, (pdu['request_id'].get(),current+1)
 				return request
 		implementation = self.getImplementation()
 		if bulk:
