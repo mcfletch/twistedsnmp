@@ -2,7 +2,8 @@
 from twisted.internet import defer, protocol, reactor
 from twisted.python import failure
 from twistedsnmp.pysnmpproto import v2c,v1, error
-import traceback, socket
+import traceback, socket, weakref
+from twistedsnmp.logs import tableretriever_log as log
 
 class TableRetriever( object ):
 	"""Object for retrieving an entire table from an SNMP agent
@@ -16,7 +17,12 @@ class TableRetriever( object ):
 	# use iterative retrieval even on v2c ports.
 	bulk = 1
 	finished = 0
-	def __init__( self, proxy, roots, includeStart=0, retryCount=4, timeout= 2.0, maxRepetitions=128 ):
+
+	def __init__(
+		self, proxy, roots, includeStart=0,
+		retryCount=4, timeout= 2.0,
+		maxRepetitions=128,
+	):
 		"""Initialise the retriever
 
 		proxy -- the AgentProxy instance we want to use for
@@ -80,9 +86,13 @@ class TableRetriever( object ):
 							self.recordCallback( root, key, value )
 		if self.finished and self.finished < 2:
 			self.finished = 2
-			if not self.df.called:
+			if getattr(self,'df',None) and not self.df.called:
 				self.df.callback( self.values )
-	def getTable( self, oids=None, roots=None, includeStart=0, retryCount=None, delay=None):
+				del self.df
+	def getTable(
+		self, oids=None, roots=None, includeStart=0,
+		retryCount=None, delay=None
+	):
 		"""Retrieve all sub-oids from these roots
 
 		recordCallback -- called for *each* OID:value pair retrieved
@@ -102,7 +112,6 @@ class TableRetriever( object ):
 			oids = self.roots
 		if roots is None:
 			roots = self.roots
-		df = defer.Deferred()
 		request = self.proxy.encode(
 			oids,
 			self.proxy.community,
@@ -113,32 +122,44 @@ class TableRetriever( object ):
 
 		roots = roots[:]
 
-		df.addCallback( self.areWeDone, roots=roots, request=request )
-		df.addCallback( self.proxy.getResponseResults )
-		df.addCallback( self.integrateNewRecord, rootOIDs = roots[:] )
 
 		try:
 			self.proxy.send(request.encode())
 		except socket.error, err:
 			if retryCount <= 0:
 				failObject = failure.Failure()
-				self.df.errback(failObject)
+				if getattr(self,'df',None) and not self.df.called:
+					self.df.errback(failObject)
+					del self.df
 				return
 			# wait timeout period before trying again...
 			# but reduce timeout period to prevent waiting
 			# too long before informing the user of delays...
 			delay *= .75
+			reactor.callLater(
+				self.timeout,
+				self.getTable,
+				oids, roots, includeStart,
+				retryCount-1, delay
+			)
+			return
+		else:
+			df = defer.Deferred()
+			key = self.proxy.getRequestKey( request )
 
-		key = self.proxy.getRequestKey( request )
-		timer = reactor.callLater(
-			self.timeout,
-			self.tableTimeout,
-			df, key, oids, roots, includeStart, retryCount-1, delay
-		)
+			df.addCallback( self.areWeDone, roots=roots, request=request )
+			df.addCallback( self.proxy.getResponseResults )
+			df.addCallback( self.integrateNewRecord, rootOIDs = roots[:] )
 
-		self.proxy.protocol.requests[key] = df, timer
+			timer = reactor.callLater(
+				self.timeout,
+				self.tableTimeout,
+				df, key, oids, roots, includeStart, retryCount-1, delay
+			)
 
-		return df
+			self.proxy.protocol.requests[key] = df, timer
+
+			return df
 	def tableTimeout( self, df, key, oids, roots, includeStart, retryCount, delay ):
 		"""Table timeout implementation
 
@@ -149,28 +170,33 @@ class TableRetriever( object ):
 			try:
 				if retryCount > 0:
 					try:
-						if self.proxy.protocol.requests[key] is df:
+						if self.proxy.protocol.requests[key][0] is df:
 							del self.proxy.protocol.requests[ key ]
 					except KeyError:
 						pass
 					return self.getTable( oids, roots, includeStart, retryCount-1, delay*1.5 )
 				try:
-					if not self.finished:
+					if not self.finished and getattr(self,'df',None):
 						self.df.errback( defer.TimeoutError('SNMP request timed out'))
+						del self.df
 				except defer.AlreadyCalledError:
 					pass
 			except Exception, err:
-				if not self.df.called:
+				if getattr(self,'df',None) and not self.df.called:
 					self.df.errback( err )
+					del self.df
 				else:
-					traceback.print_exc()
+					log.warn(
+						"""Unhandled exception %r after request completed, ignoring: %s""",
+						log.getException(err),
+					)
 	def areWeDone( self, response, roots, request, recordCallback=None ):
 		"""Callback which checks to see if we're done
 
 		if not, passes on request & schedules next iteration
 		if so, returns None
 		"""
-##		print 'response', self.proxy.getRequestKey( response )
+		log.debug( """areWeDone response: %s""", response )
 		newOIDs = response.apiGenGetPdu().apiGenGetVarBind()
 		if response.apiGenGetPdu().apiGenGetErrorStatus():
 			errorIndex = response.apiGenGetPdu().apiGenGetErrorIndex() - 1
