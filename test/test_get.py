@@ -88,7 +88,46 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 			assert self.response.has_key( oid )
 		assert not self.response.has_key( oids[-1] ), self.response
 		
+	def test_socketFailure( self ):
+		"""Test whether socket failure on send is caught properly
+
+		Previous versions have not caught failure-on-send conditions,
+		which can wind up having unexpected consequences, particularly
+		with things such as mass-retriever, which build on top of the
+		basic AgentProxy.
+		"""
+		import socket
+		def mockSend( message ):
+			raise socket.error(65, 'No route to host')
+		self.client.send = mockSend
+		d = self.client.get( [
+			'.1.3.6.1.2.1.1.1.0',
+		] )
+		self.doUntilFinish( d )
+		assert not self.success
+		assert isinstance( self.response.value, socket.error )
+		assert self.response.value.args == (65,'No route to host')
 		
+	def test_socketFailureTable( self ):
+		"""Test whether socket failure on send is caught properly for tables
+
+		Previous versions have not caught failure-on-send conditions,
+		which can wind up having unexpected consequences, particularly
+		with things such as mass-retriever, which build on top of the
+		basic AgentProxy.
+		"""
+		import socket
+		def mockSend( message ):
+			raise socket.error(65, 'No route to host')
+		self.client.send = mockSend
+		d = self.client.getTable( [
+			'.1.3.6.1.2.1.1.1.0',
+		] )
+		self.doUntilFinish( d )
+		assert not self.success
+		assert isinstance( self.response.value, socket.error )
+		assert self.response.value.args == (65,'No route to host')
+
 
 class GetRetrieverV2C( GetRetrieverV1 ):
 	version = 'v2c'

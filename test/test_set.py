@@ -35,6 +35,20 @@ class SetRetrieverV1( basetestcase.BaseTestCase ):
 		self.doUntilFinish( d )
 		assert self.success, self.response
 		assert self.response == { '.1.3.6.1.2.1.1.4.0':3 }
+	def test_socketFailure( self ):
+		"""Test for failure due to sending-time socket failure"""
+		import socket
+		def mockSend( message ):
+			raise socket.error(65, 'No route to host')
+		self.client.send = mockSend
+		d = self.client.set(
+			[('.1.3.6.1.2.1.1.4.0',3)],
+		)
+		self.doUntilFinish( d )
+		assert not self.success
+		assert isinstance( self.response.value, socket.error )
+		assert self.response.value.args == (65,'No route to host')
+		
 class SetRetrieverV2C( SetRetrieverV1 ):
 	version = 'v2c'
 
