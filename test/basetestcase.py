@@ -3,7 +3,7 @@ from twisted.internet import error as twisted_error
 import unittest
 from twistedsnmp import agent, agentprotocol, bisectoidstore
 from twistedsnmp import snmpprotocol, agentproxy
-from pysnmp.proto import v2c, v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error
 try:
 	from twistedsnmp import bsdoidstore
 except ImportError:
@@ -48,6 +48,15 @@ class BaseTestCase( unittest.TestCase ):
 	def createClientPort( self ):
 		"""Get our client port (and the attached protocol)"""
 		return snmpprotocol.port( )
+	def installMessageCounter( self ):
+		"""Install a message-counting wrapper in our client protocol"""
+		def send(request, client= self.client):
+			"""Send a request (string) to the network"""
+			client.messageCount += 1
+			client.protocol.send(request, (client.ip,client.port))
+		self.client.messageCount = 0
+		self.client.send = send
+
 	def doUntilFinish( self, d ):
 		"""Given a defered, add our callbacks and iterated until completed"""
 		self.response = None
@@ -76,7 +85,14 @@ class BaseTestCase( unittest.TestCase ):
 		self.clientPort.stopListening()
 ##		if getattr(reactor, 'threadpool', None ):
 ##			reactor.threadpool.stop()
-		reactor.iterate()
+		for x in range(30):
+			reactor.iterate()
+		del self.agent.protocol
+		for name in ('agent','agentPort','client','clientPort'):
+			try:
+				delattr( self, name )
+			except AttributeError:
+				pass
 
 if bsdoidstore:
 	class BSDBase:
