@@ -14,7 +14,12 @@ DEFAULT_BULK_REPETITION_SIZE = 128
 class AgentProxy:
 	"""Proxy object for querying a remote agent"""
 	verbose = 0
-	def __init__(self, ip, port=161, community='public', snmpVersion = '1', protocol=None):
+	CACHE = {}
+	def __init__(
+		self, ip, port=161, 
+		community='public', snmpVersion = '1', 
+		protocol=None, allowCache = False,
+	):
 		"""Initialize the SNMPProtocol object
 
 		ip -- ipAddress for the protocol
@@ -22,12 +27,19 @@ class AgentProxy:
 		community -- community to use for SNMP conversations
 		snmpVersion -- '1' or '2', indicating the supported version
 		protocol -- SNMPProtocol object to use for actual connection
+		allowCache -- if True, we will optimise queries for the assumption
+			that we will be sending large numbers of identical queries 
+			by caching every request we create and reusing it for all 
+			identical queries.  This means you cannot hold onto the 
+			requests, which isn't a problem if you're just using the 
+			proxy through the published interfaces.
 		"""
 		self.ip = str(ip)
 		self.port = int(port or 161)
 		self.community = str(community)
 		self.snmpVersion, self.implementation = self.resolveVersion( snmpVersion)
 		self.protocol = protocol
+		self.allowCache = allowCache
 	def resolveVersion( self, value ):
 		"""Resolve a version specifier to a canonical version and an implementation"""
 		if value in ("2",'2c','v2','v2c'):
@@ -71,10 +83,8 @@ class AgentProxy:
 			try:
 				return dict(value)
 			except Exception, err:
-				traceback.print_exc()
-				import pdb
-				pdb.set_trace()
-				print value
+				log.error( """Failure converting query results %r to dictionary: %s""", value, err )
+				return {}
 		df = defer.Deferred()
 		df.addCallback( self.getResponseResults )
 		df.addCallback( asDictionary )
@@ -178,12 +188,35 @@ class AgentProxy:
 		self, oids, community,
 		next=0, bulk=0, set=0,
 		maxRepetitions=DEFAULT_BULK_REPETITION_SIZE,
+		# tables suppress all caching for requests past first...
+		allowCache = True,
 	):
-		"""Encode a datagram message"""
+		"""Encode a datagram message
+		
+		oids -- list of OID instances (where set is False) to be retrieved
+				*or*
+			list of (OID,value) instances to be assigned
+		community -- community string for the query/set
+		next -- whether this is to be a getnext query 
+		bulk -- whether this is to be a getbulk query
+		maxRepetitions -- max number of repeating values for getbulk
+		allowCache -- if True, and self.allowCache and not set and not next,
+			then we will store and re-use request objects.  allowCache is 
+			used by the  tabular retrieval code to avoid caching queries 
+			beyond the first, as these are likely to be highly variable.
+		"""
 		log.debug(
 			'encode( %r, %r, %r, %r, %r, %r )',
 			oids, community, next, bulk, set, maxRepetitions,
 		)
+		doCache = allowCache and self.allowCache and (not set) and (not next)
+		if doCache:
+			cacheKey = bulk,tuple(oids),community,self.snmpVersion,maxRepetitions
+			request = self.CACHE.get( cacheKey )
+			if request is not None:
+				# this is hacky, initialValue is the incrementer for the global value
+				request.apiGenGetPdu()['request_id'].initialValue()
+				return request
 		implementation = self.getImplementation()
 		if bulk:
 			request = implementation.GetBulkRequest()
@@ -194,17 +227,21 @@ class AgentProxy:
 			request = implementation.GetNextRequest()
 		else:
 			request = implementation.GetRequest()
+
 		request.apiGenSetCommunity( community )
 		pdu = request.apiGenGetPdu()
-		def oidFix( value, implementation=implementation ):
-			if isinstance( value, tuple ) and len(value) == 2:
-				oid,value = value
-				value = datatypes.typeCoerce( value, implementation )
-				return oid, value
-			else:
-				return value, None
-		variables = [oidFix(oid) for oid in oids]
+
+		if set:
+			variables = [ 
+				(oid,datatypes.typeCoerce( value, implementation ))
+				for oid,value in oids 
+			]
+		else:
+			variables = [(oid,None) for oid in oids]
+		
 		pdu.apiGenSetVarBind(variables)
+		if doCache:
+			self.CACHE[ cacheKey ] = request
 		return request
 	def getResponseResults( self, response ):
 		"""Get [(oid,value)...] list from response
