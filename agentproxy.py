@@ -113,6 +113,8 @@ class AgentProxy:
 
 		return value is a defered for a { rootOID: { oid: value } } mapping
 		"""
+		if self.verbose:
+			print 'getTable( %(roots)r, %(includeStart)r, %(recordCallback)r,%(retryCount)r )'%locals()
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 		roots = [str(oid) for oid in roots ]
@@ -120,6 +122,8 @@ class AgentProxy:
 			self, roots, includeStart=includeStart,
 			retryCount=retryCount, timeout= timeout,
 		)
+		if self.verbose:
+			retriever.verbose = 1
 		return retriever( recordCallback = recordCallback )
 	
 	def send(self, request):
@@ -139,6 +143,8 @@ class AgentProxy:
 		return self.protocol.getRequestKey( request, (self.ip, self.port) )
 	def encode( self, oids, community, next=0, bulk=0, set=0 ):
 		"""Encode a datagram message"""
+		if self.verbose:
+			print 'encode( %(oids)r, %(community)r, %(next)r, %(bulk)r, %(set)r)'%locals()
 		implementation = self.getImplementation()
 		if bulk:
 			request = implementation.GetBulkRequest()
@@ -168,6 +174,8 @@ class AgentProxy:
 		that wants [(oid,value)...] format instead of response
 		objects register this callback before the needy callback.
 		"""
+		if self.verbose:
+			print 'getResponseResults( %(response)r )'%locals()
 		if response and not response.apiGenGetPdu().apiGenGetErrorStatus():
 			pdu = response.apiGenGetPdu()
 			answer = pdu.apiGenGetVarBind()
