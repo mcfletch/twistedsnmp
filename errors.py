@@ -18,4 +18,5 @@ class OIDNameError( NameError ):
 			self.errorCode,
 			self.message,
 		)
+	__str__ = __repr__
 
