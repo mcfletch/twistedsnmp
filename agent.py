@@ -296,8 +296,12 @@ class Agent:
 			pdu.apiGenSetErrorIndex( errorIndex + 1 ) # 1-indexed
 			pdu.apiGenSetVarBind(variables)
 			return self.protocol.send( response.encode(), address )
-		for index, (oid,value) in enumerate(variables):
-			self.dataStore.setValue( oid, value  )
+		self.setOIDs( variables )
 		response = request.reply()
 		pdu.apiGenSetVarBind(variables)
 		return self.protocol.send( response.encode(), address )
+	def setOIDs( self, variables ):
+		"""Set the OID:value variables in our dataStore"""
+		for index, (oid,value) in enumerate(variables):
+			self.dataStore.setValue( oid, value  )
+		return variables
