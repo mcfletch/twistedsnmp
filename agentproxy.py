@@ -28,8 +28,6 @@ class AgentProxy:
 		else:
 			self.implementation = v1
 		self.protocol = protocol
-		if not self.protocol:
-			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 	def __repr__( self ):
 		"""Get nice string representation of the proxy"""
 		ip,port,community,snmpVersion,protocol = self.ip,self.port,self.community,self.snmpVersion,self.protocol
@@ -54,6 +52,8 @@ class AgentProxy:
 		error message, will raise error if the connection times
 		out.
 		"""
+		if not self.protocol:
+			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 		df = defer.Deferred()
 		def asDictionary( value ):
 			return dict(value)
@@ -74,6 +74,8 @@ class AgentProxy:
 
 		raises errors if the setting fails
 		"""
+		if not self.protocol:
+			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 		df = defer.Deferred()
 		if hasattr( oids, "items"):
 			oids = oids.items()
@@ -111,6 +113,8 @@ class AgentProxy:
 
 		return value is a defered for a { rootOID: { oid: value } } mapping
 		"""
+		if not self.protocol:
+			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
 		roots = [str(oid) for oid in roots ]
 		retriever = tableretriever.TableRetriever(
 			self, roots, includeStart=includeStart,
