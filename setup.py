@@ -27,6 +27,42 @@ if __name__ == "__main__":
 			return install_data.run(self)
 	##############
 
+	from sys import hexversion
+	if hexversion >= 0x2030000:
+		# work around distutils complaints under Python 2.2.x
+		extraArguments = {
+			'classifiers': [
+				"""License :: OSI Approved :: BSD License""",
+				"""Programming Language :: Python""",
+				"""Topic :: Software Development :: Libraries :: Python Modules""",
+				"""Intended Audience :: Developers""",
+				"""Topic :: System :: Networking :: Monitoring""",
+				"""Topic :: System :: Networking""",
+			],
+			'download_url': "https://sourceforge.net/project/showfiles.php?group_id=102250",
+			'keywords': 'snmp,twisted,manager,agent,protocol,oid,oidstore',
+			'long_description' : """SNMP Protocol for the Twisted Networking Framework
+
+TwistedSNMP is a set of SNMP protocol implementations
+for Python's Twisted Matrix networking framework using
+the PySNMP project.  It provides the following:
+
+    * get, set, getnext and getbulk Manager-side queries
+    * get, set, getnext and getbulk Agent-side services
+
+Eventual goals of the system (the project is just beginning):
+
+    * provide access to all v1 and v2 SNMP functionality
+      for writing Agent and Manager services
+    * provide convenient testing mechanisms for SNMP
+      Agent/Manager development (e.g. mirroring an SNMP
+      Agent's OID tree for local query testing)
+""",
+			'platforms': ['Any'],
+		}
+	else:
+		extraArguments = {
+		}
 	### Now the actual set up call
 	setup (
 		name = "TwistedSNMP",
@@ -45,5 +81,6 @@ if __name__ == "__main__":
 			'twistedsnmp.utilities',
 			'twistedsnmp.test',
 		],
+		**extraArguments
 	)
 	
