@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>TwistedSNMP</title>
+  
+  <link rel="stylesheet" type="text/css" href="style/sitestyle.css"></head>
+<body style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);" link="#000080" vlink="#800080" alink="#008000">
+<h1>TwistedSNMP<br>
+</h1>
+<p>TwistedSNMP is a set of SNMP protocol implementations for Python's
+Twisted Matrix networking framework using the PySNMP project.&nbsp; It
+provides the following:</p>
+<ul>
+  <li>get, set, getnext and getbulk Manager-side queries</li>
+  <li>get, set, getnext and getbulk Agent-side services</li>
+</ul>
+<p>Eventual goals of the system (the project is just beginning):<br>
+</p>
+<ul>
+  <li>provide access to all v1 and v2 SNMP functionality for writing
+Agent and Manager services</li>
+  <li>provide convenient testing mechanisms for SNMP Agent/Manager
+development (e.g. mirroring an SNMP Agent's OID tree for local query
+testing)</li>
+</ul>
+<p>Once complete, we can look at either incorporating the system into
+the PySNMP or Twisted distribution.&nbsp; For now, you can download
+TwistedSNMP from my <a href="http://members.rogers.com/mcfletch/programming/index.htm#TwistedSNMP">personal website</a>.<br>
+</p>
+<h2>Installation</h2>
+<p>TwistedSNMP is distributed as a Python distutils package.&nbsp; You
+can install it by unpacking the source distribution and running:<br>
+</p>
+<div style="margin-left: 40px;">setup.py install<br>
+</div>
+<p>In the top level of the install directory.<br>
+</p>
+<h2>Documentation</h2>
+<p>At the moment, most of the documentation for the module is in the form of the auto-generated <a href="pydoc/twistedsnmp.html">PyDoc reference</a> API, which includes auto-generated documentation for <a href="pydoc/pysnmp.html">PySNMP</a>.&nbsp; You can find usage examples in the test sub-directory of the distribution.<br>
+</p>
+
+
+<h2>Changes</h2>
+<p>Version 0.2.5<br>
+</p>
+<ul>
+  <li>Altered timeout methods to catch exceptions within themselves and relay to the caller via the registered deferred object</li>
+  <li>Documentation enhancements</li><li>Patch to work around Python 2.3.x bug in the BSDDB wrapper class</li>
+  <li>Eliminated old algorithms for MassRetriever</li>
+  <li>Reduced default MassRetriever iteration delay to 0.005 instead of 0.01 seconds<br>
+  </li>
+
+</ul>
+<p>Version 0.2.4<br>
+</p>
+
+<ul>
+  <li>Fixed bug with table request processing.<br>
+  </li>
+</ul>
+<p>Version 0.2.3<br>
+</p>
+
+<ul>
+  <li>Rework of mass retriever algorithm (yet again) to be more robust when dealing with larger AgentProxy sets</li>
+  <ul>
+    <li>Much simpler mechanism</li>
+    <li>Throttles to initiate less than 200 queries/second by default,
+but ignores the number in play, which, as it turns out, seems to be
+somewhat useless for managing load.&nbsp; This is not ideal, as, at
+least on our testing systems, the hardware can readily handle a few
+thousand queries/second (it's Twisted's structure that requires the
+throttling).<br>
+    </li>
+  </ul>
+  <li>Internal rework so that timeouts are cancelled ASAP for messages received</li>
+  <ul>
+    <li>To prevent timeouts issuing before the system gets around to calling the callback</li>
+  </ul>
+  <li>Discovered (as-yet-unfixed) bug in Agent's (as distinct from AgentProxy) processing of table requests</li>
+  <ul>
+    <li>Basically it doesn't properly handle tables of different lengths.<br>
+    </li>
+  </ul>
+</ul>
+<p>Version 0.2.2<br>
+</p>
+
+<ul>
+  <li>Bug-fix in utilities/mirroragent.py<br>
+  </li>
+  <li>Test module cleanup for cross-platform operation<br>
+  </li>
+  <ul>
+    <li>Allow for operation when no bsddb module is available, as there are platforms on which it's not available by default</li>
+    <li>Use non-privileged port if the privileged 161 is not bindable<br>
+    </li>
+  </ul>
+  <li>Added check to twineTables for NULL OID set (passing in such an
+OID set makes no sense, and would cause silent, difficult-to-track-down
+errors)<br>
+  </li>
+</ul>
+<p>Version 0.2.1<br>
+</p>
+
+<ul>
+  <li>Cleaned up and reworked mass-query mechanism;</li>
+  <ul>
+    <li>patterned loosely after the table-query mechanism<br>
+    </li>
+    <li>fixed at least one logic bug in the batching machinery<br>
+    </li>
+    <li>added adaptive heuristics for determining number of queries to keep in play</li><li>changes the api for retrieval in a backward-incompatible way<br>
+    </li>
+
+  </ul><li>Fixed shallow bug in TableRetriever's handling of responses with unequal rootOID and (OID,value) set lengths<br>
+  </li>
+
+</ul>
+<p>Version 0.2.0<br>
+</p>
+
+<ul>
+  <li>Complete refactoring of the client/manager-side API.&nbsp;
+Instead of requiring one port per managed agent, is able to manage any
+number of agents from a single port. Most of the machinery of the old
+protocol object is now part of an AgentProxy class.&nbsp; You *will*
+need to modify all client code to work with the new API.&nbsp; Mostly
+just a matter of a different initialisation pattern and then using the
+AgentProxy object in the same manner as you used the old SNMPProtocol
+object.</li>
+  <li>Crude mass-query mechanism created.&nbsp; As of yet only tested
+against a local server, and doesn't yet have balancing heuristics to
+throttle load in response to network response, but does appear to work.<br>
+  </li>
+  <li>Dropped the snmpports module.&nbsp; It's no longer necessary with the new structure.</li>
+  <li>Bug was discovered in Python 2.3's BSDDB module which affects the
+BSDDB storages, bug report submitted to the Python project, but for
+now, will not pass tests under Python 2.3.<br>
+  </li>
+</ul>
+<p>Version 0.1.5<br>
+</p>
+
+<ul>
+  <li>Refactored the test-suite into its own package w/ sub-modules for
+the different test-types</li>
+  <li>Fixed bug in usage of oidStore API for Agent set-requests<br>
+  </li>
+</ul>
+<p>Version 0.1.4<br>
+</p>
+<ul>
+  <li>Utilities:</li>
+  <ul>
+    <li>mirroragent -- mirrors an agent to local bsddb shelve for
+testing (still very rough, just a sketch, really)<br>
+    </li>
+  </ul>
+  <li>BSDOIDStore -- a new OIDStore implementation for use in utilities<br>
+  </li>
+  <li>Major refactoring of the Agent-side mechanisms:</li>
+  <ul>
+    <li>AgentProtocol -- low-level send and dispatch of messages to the
+Agent</li>
+    <li>Agent -- SNMP logic for get/getNext/getTable/set implementation</li>
+    <li>OIDStore -- interface for storage/retrieval of ordered OID tree</li>
+    <li>BisectOIDStore -- the demo OIDStore implementation for testing
+purposes using the bisect module<br>
+    </li>
+  </ul>
+</ul>
+<p>Version 0.1.3<br>
+</p>
+<ul>
+  <li>Agent and Manager-side set protocol implementation</li>
+  <li>Minimal sample code for Agent-side set code, doesn't yet do the
+error-negotiation stuff<br>
+  </li>
+</ul>
+<p>Version 0.1.2<br>
+</p>
+<ul>
+  <li>Test code<br>
+  </li>
+  <li>Agent-side protocol sample code extended to include getnext and
+getbulk<br>
+  </li>
+</ul>
+<p>Version 0.1.1<br>
+</p>
+<ul>
+  <li>Beginning of work on an Agent-side protocol and some sample Agent
+code</li>
+</ul>
+<p>Version 0.1<br>
+</p>
+<ul>
+  <li>Initial release<br>
+  </li>
+</ul>
+<p class="footer" style="text-align: center;"><a href="http://members.rogers.com/mcfletch/programming/">TwistedSNMP</a>&nbsp;
+is an Open-Source Project<br>
+</p>
+</body></html>
