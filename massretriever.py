@@ -24,6 +24,8 @@ class MassRetriever( object ):
 	multiple queries!
 	"""
 	verbose = 0
+	finishedSend = 0
+	TARGET_IN_PLAY = 100
 	def __init__(
 		self, proxies,
 	):
@@ -33,6 +35,7 @@ class MassRetriever( object ):
 		"""
 		self.proxies = proxies
 		self.partialDefers = []
+		
 		
 	def __call__(
 		self, oids=(), tables=(), iterDelay=0.005, *arguments, **named
@@ -66,10 +69,20 @@ class MassRetriever( object ):
 		self.finalDefer = defer.Deferred()
 		self._arguments = arguments
 		self._namedArguments = named
-		self.smallBatch( oids, tables, iterDelay=iterDelay )
+		self.proxySource = self.proxyIterator(oids, tables)
+		self.iterDelay = iterDelay
+		self.inPlay = 0
+		self.smallBatch(iterDelay=iterDelay )
 		return self.finalDefer
+	def proxyIterator( self, oids, tables ):
+		"""Create a generator-based iterator for producing sub-queries
+
+		yields (proxy,oids,tables) for proxy from self.proxies
+		"""
+		for proxy in self.proxies:
+			yield (proxy, oids, tables)
 		
-	def smallBatch( self, oids, tables, index=0, iterDelay=.01 ):
+	def smallBatch( self, iterDelay=.01 ):
 		"""Do single-proxy batches iteratively
 
 		This is the most robust algorithm I've come up with so far,
@@ -82,16 +95,19 @@ class MassRetriever( object ):
 		but twisted's strange performance characteristics make it
 		difficult to write a beast that works to that level AFAICS.
 		"""
-		if not self.finalDefer.called:
-			if index < len(self.proxies):
-				proxy = self.proxies[index]
+		if not self.finalDefer.called and not self.finishedSend:
+			try:
+				proxy, oids, tables = self.proxySource.next()
+				self.inPlay += 1
+			except StopIteration:
+				self.finishedSend = 1
+				dl = defer.DeferredList( self.partialDefers )
+				dl.addCallback( self.returnFinal )
+			else:
 				self.singleProxy(
 					proxy,oids,tables
 				)
-				reactor.callLater( iterDelay, self.smallBatch, oids, tables, index+1 )
-			else:
-				dl = defer.DeferredList( self.partialDefers )
-				dl.addCallback( self.returnFinal )
+				reactor.callLater( iterDelay, self.smallBatch, iterDelay=iterDelay)
 
 	def returnFinal( self, dataList ):
 		"""Handle final defer callback from completion of all partialDefers
@@ -151,6 +167,9 @@ class MassRetriever( object ):
 		if set is None:
 			self.result[key] = set = {}
 		set.update( value )
+		self.inPlay -= 1
+		if self.inPlay < self.TARGET_IN_PLAY and not self.finishedSend:
+			reactor.callLater( 0.0, self.smallBatch, iterDelay=self.iterDelay)
 		return value
 	errorCount=0
 	def handleSingleError( self, err, oids, proxy ):
@@ -188,6 +207,9 @@ class MassRetriever( object ):
 		for oid in oids:
 			if not set.has_key( oid ):
 				set[oid] = None
+		self.inPlay -= 1
+		if self.inPlay < self.TARGET_IN_PLAY and not self.finishedSend:
+			reactor.callLater( 0.0, self.smallBatch, iterDelay=self.iterDelay)
 		return None
 	if __debug__:
 		def printStats( self ):
