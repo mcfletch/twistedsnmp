@@ -40,8 +40,18 @@ can install it by unpacking the source distribution and running:<br>
 
 
 <h2>Changes</h2>
-<p>Verison 0.2.8<br>
+<p>Version 0.2.9<br>
 </p>
+<ul>
+  <li>Catch socket errors during message sending and report as Twisted
+failures (otherwise the errors simply print exceptions and are ignored,
+which can hang client code that expects (rightly) an eventual return
+value from something which calls a TwistedSNMP method).<br>
+  </li>
+</ul>
+<p>Version 0.2.8<br>
+</p>
+
 <ul>
   <li>BSDOIDStore.close method added to actually save data to disk (useful, that :) )</li>
   
