@@ -42,6 +42,30 @@ class OIDStore:
 		request.
 		"""
 
+	def update( self, valueSet ):
+		"""Given a valueSet, load given values into storage
+
+		valueSet -- A set of OID:value mappings in these forms
+			[ (oid,value) ] # value can also be a dictionary of oid:value mappings
+			{ rootOID : { oid : value }}
+
+		XXX Should allow for passing in another OIDStore, but that
+			Will require a first() method for all OIDStores
+		"""
+		if hasattr( valueSet, 'items' ):
+			return self.update( valueSet.items())
+		if not valueSet:
+			return 0
+		# okay, now should be list of tuples
+		count = 0
+		for key, value in valueSet:
+			if isinstance( value, dict ):
+				count += self.update( value.items())
+			else:
+				count += 1
+				self.setValue( key, value )
+		return count
+
 def dumbPrefix( key, oid ):
 	"""Is the key == oid or a parent of OID?
 

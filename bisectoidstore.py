@@ -33,10 +33,7 @@ class BisectOIDStore(oidstore.OIDStore):
 	def __init__( self, OIDs=None ):
 		"""Initialise the storage with appropriate OIDs"""
 		self.OIDs = []
-		if hasattr( OIDs, 'items' ):
-			OIDs = OIDs.items()
-		for key,value in OIDs:
-			self.setValue( key, value )
+		self.update( OIDs )
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 

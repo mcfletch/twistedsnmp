@@ -29,8 +29,7 @@ class BSDOIDStore(oidstore.OIDStore):
 	def __init__( self, filename, OIDs = None ):
 		"""Initialise the storage with appropriate OIDs"""
 		self.btree = self.open( filename )
-		if OIDs:
-			self.importValues( OIDs )
+		self.update( OIDs )
 	def __del__( self ):
 		"""Close the OID store (save to disk)"""
 		self.close()
@@ -54,17 +53,6 @@ class BSDOIDStore(oidstore.OIDStore):
 		if self.btree:
 			self.btree.close()
 			self.btree = None
-	def importValues( self, OIDs ):
-		"""Import values from the OID:value set passed
-
-		OIDs -- dictionary of OID:value, or a sequence of
-			OID:value tuples.  Each will be stored directly
-			in the btree shelve object
-		"""
-		if hasattr( OIDs, 'items' ):
-			OIDs = OIDs.items()
-		for key,value in OIDs:
-			self.btree[oidToSortable(key)] = value
 	def getExactOID( self, base ):
 		"""Get the given OID,value pair for the given base
 
