@@ -93,7 +93,7 @@ class SNMPProtocol(protocol.DatagramProtocol):
 			'response', 'set_request',
 		]:
 			try:
-				return target, request['pdu'][key]['request_id']
+				ID = request['pdu'][key]['request_id']
 			except KeyError, err:
 				pass
 			except TypeError, err:
@@ -101,6 +101,8 @@ class SNMPProtocol(protocol.DatagramProtocol):
 					"""Unexpected TypeError retrieving request key %r: %s""",
 					key, log.getException(err),
 				)
+			else:
+				return target, ID.get()
 		raise KeyError( """Unable to get a request key id from %s for target %s"""%( request, target))
 
 	def decode( self, message ):
