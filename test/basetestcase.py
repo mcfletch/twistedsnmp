@@ -30,6 +30,7 @@ class BaseTestCase( unittest.TestCase ):
 						),
 					),
 				)
+				self.agentPort = port
 			except twisted_error.CannotListenError:
 				pass
 			else:
@@ -45,23 +46,16 @@ class BaseTestCase( unittest.TestCase ):
 			"""Could not listen on *any* port in our (large) range of potential ports for agent!""",
 		)
 	def createClientPort( self ):
-		for port in range(25000,30000):
-			try:
-				return reactor.listenUDP(
-					port, snmpprotocol.SNMPProtocol(),
-				)
-			except twisted_error.CannotListenError:
-				pass
-		raise twisted_error.CannotListenError(
-			"""Could not listen on *any* port in our (large) range of potential ports for client!""",
-		)
+		"""Get our client port (and the attached protocol)"""
+		return snmpprotocol.port( )
 	def doUntilFinish( self, d ):
 		"""Given a defered, add our callbacks and iterated until completed"""
 		self.response = None
 		self.success = None
 		d.addCallbacks( self.onSuccess, self.onFailure )
-		while self.response is None:
-			reactor.iterate()
+		reactor.run()
+##		while self.response is None:
+##			reactor.iterate()
 	def createStorage( self ):
 		return bisectoidstore.BisectOIDStore(
 			OIDs = self.oidsForTesting,
@@ -69,14 +63,18 @@ class BaseTestCase( unittest.TestCase ):
 	def onSuccess( self, value ):
 		self.response = value
 		self.success = 1
+		reactor.crash()
 	def onFailure( self, reason ):
 		self.response = reason
 		self.success = 0
+		reactor.crash()
 
 	def tearDown( self ):
 		"""Tear down our testing framework"""
 		self.agent.stopListening()
 		self.clientPort.stopListening()
+##		if getattr(reactor, 'threadpool', None ):
+##			reactor.threadpool.stop()
 		reactor.iterate()
 
 if bsdoidstore:
