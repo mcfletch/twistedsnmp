@@ -8,7 +8,7 @@
 </head>
 <body
  style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); direction: ltr;"
- link="#000080" alink="#008000" vlink="#800080">
+ alink="#008000" link="#000080" vlink="#800080">
 <h1>TwistedSNMP<br>
 </h1>
 <p>TwistedSNMP is a set of SNMP protocol implementations for Python's
@@ -63,7 +63,7 @@ object.&nbsp; With this, we can create any number of <a
  href="pydoc/twistedsnmp.agentproxy.html">AgentProxy</a> objects which
 provide the API we use for querying the SNMP Agent.<br>
 </p>
-<pre>port = snmpprotocol.port()<br>proxy = agentproxy.AgentProxy(<br>	ipAddress, 161,<br>	community = sys.argv[2],<br>	snmpVersion = 'v2',<br>	protocol = port.protocol,<br>)<br></pre>
+<pre>port = snmpprotocol.port()<br>proxy = agentproxy.AgentProxy(<br>	ipAddress, 161,<br>	community = sys.argv[2],<br>	snmpVersion = 'v2',<br>	protocol = port.protocol,<br>	allowCache = True,<br>)<br></pre>
 <p>Once we have the AgentProxy, we have three major entry-points.&nbsp;
 The first is "get", which retrieves single oid values.&nbsp; You can
 see a full usage example in <a href="examples/simpleget.py.xhtml">simpleget.py</a>:<br>
@@ -111,6 +111,16 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.3.5<br>
+</p>
+<ul>
+  <li>Provides simple mechanism for caching PySNMP get and getbulk
+request objects to optimise queries</li>
+  <li>Tightens up the allowed values for "oids" and "roots" parameters
+throughout, now must be either a sequence of OIDs (or OID-compatible
+values) for get/getTable or a sequence of (OID,value) pairs for set<br>
+  </li>
+</ul>
 <p>Version 0.3.0<br>
 </p>
 <ul>
