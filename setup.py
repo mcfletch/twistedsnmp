@@ -66,7 +66,7 @@ Eventual goals of the system (the project is just beginning):
 	### Now the actual set up call
 	setup (
 		name = "TwistedSNMP",
-		version = "0.2.6",
+		version = "0.2.7",
 		url = "http://twistedsnmp.sourceforge.net/",
 		description = "SNMP Protocol for the Twisted Networking Framework",
 		author = "Mike C. Fletcher & Patrick K. O'Brien",
