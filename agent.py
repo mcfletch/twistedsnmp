@@ -240,6 +240,15 @@ class Agent:
 		repeating -- sequence of OIDs for repeating retrieval
 		maxRepetitions -- maximum number of repetitions
 
+		Note:
+			The interpretation here is that the set of repeating values
+			must remain of equal size, that is, our result set must be
+			N + (M*r) (where M is the repeating count and r the number of
+			iterations) items.  This is new with version 0.3.9, previous
+			versions assumed that we would trim the size of the window
+			as each starting-oid reached end-of-mib-view, which would result
+			in values no longer being indexed to their source OID.
+
 		return list of oid,value pairs
 		"""
 		# Known as M, N and R in the spec...
@@ -259,11 +268,12 @@ class Agent:
 			for index, base in enumerate(variables):
 				try:
 					oid,value = self.dataStore.nextOID( base )
-					nextIter.append( oid )
 					foundGood = 1
 				except errors.OIDNameError, err:
+					# XXX is the use of base here correct?
 					oid = base
 					value = v2c.EndOfMibView()
+				nextIter.append( oid )
 				result.append( (oid,value) )
 			if not foundGood:
 				break # just to save processing
