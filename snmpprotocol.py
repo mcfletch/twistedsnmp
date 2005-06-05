@@ -126,7 +126,7 @@ def port( portNumber=-1, protocolClass=SNMPProtocol ):
 
 	portNumber -- a numeric port specifier, or a sequence of
 		numeric port specifiers to search
-		if not specified, defaults to range(20000,30000)
+		if not specified, defaults to range(25000,30000)
 	protocolClass -- the protocol class to create, will
 		be called with default arguments () to create the
 		protocol instance
