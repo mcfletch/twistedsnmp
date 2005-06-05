@@ -44,10 +44,13 @@ class TableRetriever( object ):
 		self.timeout = timeout
 		self.values = {} # {rootOID: {OID: value}} mapping
 		self.maxRepetitions = maxRepetitions
-	def __call__( self, recordCallback=None ):
+	def __call__( self, recordCallback=None, startOIDs=None ):
 		"""Collect results, call recordCallback for each retrieved record
 
 		recordCallback -- called for each new record discovered
+		startOIDs -- optional OID markers to be used as starting point,
+			i.e. if passed in, we retrieve the table from startOIDs to
+			the end of the table.
 
 		Will use bulk downloading when available (i.e. if
 		we have implementation v2c, not v1) and self.bulk is true.
@@ -56,7 +59,7 @@ class TableRetriever( object ):
 		"""
 		self.recordCallback = recordCallback
 		self.df = defer.Deferred()
-		self.getTable( includeStart= self.includeStart, firstCall=True)
+		self.getTable( includeStart= self.includeStart, oids=startOIDs, firstCall=True)
 		return self.df
 	if USE_STRING_OIDS:
 		def integrateNewRecord( self, oidValues, rootOIDs ):
