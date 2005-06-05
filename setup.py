@@ -10,6 +10,11 @@ if __name__ == "__main__":
 	import sys,os, string
 	from distutils.sysconfig import *
 	from distutils.core import setup
+	
+	# don't want to use import because there might be an installed version 
+	# and current path is often not in import directories, whereas we *know*
+	# the file is right next to setup.py in the source archive.
+	execfile( 'version.py', globals())
 
 	##############
 	## Following is from Pete Shinners,
@@ -66,12 +71,12 @@ Eventual goals of the system (the project is just beginning):
 	### Now the actual set up call
 	setup (
 		name = "TwistedSNMP",
-		version = "0.3.7",
+		version = versionString,
 		url = "http://twistedsnmp.sourceforge.net/",
 		description = "SNMP Protocol for the Twisted Networking Framework",
 		author = "Mike C. Fletcher & Patrick K. O'Brien",
 		author_email = "mcfletch@users.sourceforge.net",
-		license = "BSD-style, see license.txt for details",
+		license = "BSD",
 
 		package_dir = {
 			'twistedsnmp':'.',
@@ -81,6 +86,9 @@ Eventual goals of the system (the project is just beginning):
 			'twistedsnmp.utilities',
 			'twistedsnmp.test',
 		],
+		options = {
+			'sdist':{'force_manifest':1,'formats':['gztar','zip'],},
+		},
 		**extraArguments
 	)
 	
