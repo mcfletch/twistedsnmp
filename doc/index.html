@@ -41,7 +41,12 @@ can install it by unpacking the source distribution and running:<br>
 </div>
 <p>In the top level of the install directory.&nbsp; You will need both <a
  href="http://www.twistedmatrix.com/">Twisted</a> and <a
- href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed<br>
+ href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed.&nbsp;
+The PySNMP-SE package (available from the <a
+ href="https://sourceforge.net/project/showfiles.php?group_id=102250">TwistedSNMP
+download page</a>) allows for faster scanning, but returns tuple-based
+OIDs, this can result in markedly faster scanning for systems with
+higher throughput requirements.<br>
 </p>
 <h2>Documentation</h2>
 <p>At the moment, most of the documentation for the module is in the
@@ -111,6 +116,35 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.3.10<br>
+</p>
+<ul>
+  <li>Fix bug in the Agent code, was trimming the set of OIDs returned
+when a particular OID reached end-of-MIB-view, now fills the rest of
+the value-sets with end-of-MIB-view objects, so OID sets are always
+indexed by the requested OIDs.<br>
+  </li>
+</ul>
+<p>Version 0.3.9<br>
+</p>
+<ul>
+  <li>Allow retrieval of the "tail" of a table by specifying marker
+OIDs, that is, retrieve from the item beyond the marker OID to the end
+of the table, to allow for querying "new items" from a table given
+known previous items (assuming new items are appended to the end of the
+table)<br>
+  </li>
+</ul>
+<p>Version 0.3.8<br>
+</p>
+<ul>
+  <li>Include missing module from the 0.3.8 release (and actually test
+with 3.4.x to be sure it works with that version)</li>
+  <li>Release the 3.5 extensions (PySNMP-SE) so that others can play
+with them</li>
+  <li>Repackage with somewhat cleaner distutils script<br>
+  </li>
+</ul>
 <p>Version 0.3.7<br>
 </p>
 <ul>
