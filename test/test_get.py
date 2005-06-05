@@ -58,6 +58,30 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		tableData = self.response[oid.OID('.1.3.6.1.2.1.1') ]
 		assert isinstance(tableData, dict)
 		assert tableData.has_key(oid.OID('.1.3.6.1.2.1.1.1.0')), tableData
+	def test_tableGetWithStart( self ):
+		"""Can retrieve a tabular value?"""
+		d = self.client.getTable( 
+			[
+				'.1.3.6.1.2.1.1'
+			],
+			startOIDs = [
+				'.1.3.6.1.2.1.1.3.0'
+			],
+		)
+		self.doUntilFinish( d )
+
+		assert self.success, self.response
+		assert isinstance( self.response, dict ), self.response
+		assert self.response.has_key(
+			oid.OID('.1.3.6.1.2.1.1')
+		), (self.response,self)
+		tableData = self.response[oid.OID('.1.3.6.1.2.1.1') ]
+		assert isinstance(tableData, dict)
+		# won't have this key because started later...
+		assert not tableData.has_key(oid.OID('.1.3.6.1.2.1.1.1.0')), tableData
+		# should (only) have this key because started at 3...
+		assert tableData.has_key(oid.OID('.1.3.6.1.2.1.1.4.0')), tableData
+		assert len(tableData) == 1
 
 	#good
 	def test_tableGetMissing( self ):
