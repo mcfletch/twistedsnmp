@@ -1,7 +1,7 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from twistedsnmp.pysnmpproto import v2c,v1, error, oid, cacheOIDEncoding, CAN_CACHE_OIDS
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid, cacheOIDEncoding, CAN_CACHE_OIDS, USE_STRING_OIDS
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 from twistedsnmp.logs import agentproxy_log as log
@@ -130,6 +130,7 @@ class AgentProxy:
 		recordCallback=None,
 		retryCount=4, timeout= 2.0,
 		maxRepetitions= DEFAULT_BULK_REPETITION_SIZE,
+		startOIDs=None,
 	):
 		"""Convenience method for creating and running a TableRetriever
 
@@ -148,6 +149,10 @@ class AgentProxy:
 		maxRepetitions -- size for each block requested from the
 			server, i.e. how many records to download at a single
 			time
+		startOIDs -- optional OID markers to be used as starting point,
+			i.e. if passed in, we retrieve the table from startOIDs to
+			the end of the table excluding startOIDs themselves, rather 
+			than from roots to the end of the table.
 
 		Will use bulk downloading when available (i.e. if
 		we have implementation v2c, not v1).
@@ -162,6 +167,25 @@ class AgentProxy:
 		if not self.protocol:
 			raise ValueError( """Expected a non-null protocol object! Got %r"""%(self.protocol,))
 		roots = [OID(oid) for oid in roots ]
+		if startOIDs:
+			if len(startOIDs) != len(roots):
+				raise ValueError( """startOIDs not the same length as roots: %s %s"""%(
+					startOIDs, roots,
+				))
+			if USE_STRING_OIDS:
+				# need the isaprefix method, so need real ObjectIdentifier in
+				# older PySNMP implementations
+				rOID = self.proxy.getImplementation().ObjectIdentifier
+			else:
+				rOID = OID
+			startOIDs = [rOID(oid) for oid in startOIDs]
+			for index,(root,oid) in enumerate(zip( roots, startOIDs )):
+				if not rOID(root).isaprefix(oid):
+					raise ValueError(
+						"""startOID %s (index %s) is not a prefix of root %s: %s"""%(
+							oid, index, index, root,
+						)
+					)
 		retriever = tableretriever.TableRetriever(
 			self, roots, includeStart=includeStart,
 			retryCount=retryCount, timeout= timeout,
@@ -169,7 +193,7 @@ class AgentProxy:
 		)
 		if self.verbose:
 			retriever.verbose = 1
-		return retriever( recordCallback = recordCallback )
+		return retriever( recordCallback = recordCallback,startOIDs = startOIDs,)
 	
 	def send(self, request):
 		"""Send a request (string) to the network"""
