@@ -1,5 +1,5 @@
 TwistedSNMP, SNMP Protocol for the Twisted Networking Framework
-	Copyright (c) 2003, Michael C. Fletcher, Patrick K. O'Brien
+	Copyright (c) 2003-2005, Michael C. Fletcher, Patrick K. O'Brien
 	All rights reserved.
 
 THIS SOFTWARE IS NOT FAULT TOLERANT AND SHOULD NOT BE USED IN ANY
