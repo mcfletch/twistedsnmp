@@ -41,12 +41,13 @@ can install it by unpacking the source distribution and running:<br>
 </div>
 <p>In the top level of the install directory.&nbsp; You will need both <a
  href="http://www.twistedmatrix.com/">Twisted</a> and <a
- href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x installed.&nbsp;
+ href="http://pysnmp.sourceforge.net/">PySNMP</a> 3.x or PySNMP-SE
+installed.&nbsp;
 The PySNMP-SE package (available from the <a
  href="https://sourceforge.net/project/showfiles.php?group_id=102250">TwistedSNMP
 download page</a>) allows for faster scanning, but returns tuple-based
-OIDs, this can result in markedly faster scanning for systems with
-higher throughput requirements.<br>
+OIDs.&nbsp; PySNMP-SE is recommended for use for all new TwistedSNMP
+development.<br>
 </p>
 <h2>Documentation</h2>
 <p>At the moment, most of the documentation for the module is in the
@@ -116,6 +117,12 @@ OIDStores available.<br>
 <p>
 </p>
 <h2>Changes</h2>
+<p>Version 0.3.11</p>
+<ul>
+  <li>Optimise the integrateNewRecord method used with pysnmp-se to
+reduce the number of total iterations required to process the incoming
+records</li>
+</ul>
 <p>Version 0.3.10<br>
 </p>
 <ul>
