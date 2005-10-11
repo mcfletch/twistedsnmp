@@ -142,16 +142,22 @@ class BisectOIDStore(oidstore.OIDStore):
 		"""
 		base = oidToSortable( base )
 		start = bisect.bisect( self.OIDs, (base,) )
+		# if we have pysnmp-se optimised isaprefix support, use that,
+		# as it saves copying the OIDs using slice operations
+		if hasattr( base.__class__, 'isaprefix' ):
+			dumbPrefix = base.__class__.isaprefix
+		else:
+			dumbPrefix = oidstore.dumbPrefix
 		if start < len( self.OIDs ):
 			# require for all OIDs that they precisely match
 			# an OID in the OID set we publish...
 			oid,value = self.OIDs[start]
-			if oid != base and not oidstore.dumbPrefix( base, oid ):
+			if oid != base and not dumbPrefix( base, oid ):
 				raise errors.OIDNameError(
 					base,
 					message="Could not find OID in database",
 				)
-			elif oid != base and oidstore.dumbPrefix( base, oid ):
+			elif oid != base and dumbPrefix( base, oid ):
 				# if the found OID is prefixed by key, we want to return this OID
 				# otherwise we want to return the *next* item
 				
@@ -187,7 +193,7 @@ class BisectOIDStore(oidstore.OIDStore):
 			if self.OIDs:
 				if (
 					hasattr(self.OIDs[-1][1],'nextOID') and
-					oidstore.dumbPrefix( base, self.OIDs[-1][0])
+					dumbPrefix( base, self.OIDs[-1][0])
 				):
 					return self.OIDs[-1][1].nextOID( sortableToOID(base) )
 			raise errors.OIDNameError( base, message="""OID is beyond end of table""" )

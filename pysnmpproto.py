@@ -6,11 +6,13 @@ and simply import them throughout TwistedSNMP.
 """
 try:
 	from pysnmp.proto import v2c, v1, error, rfc1155, rfc1902
+	from pysnmp.proto.api import alpha
 	from pysnmp.asn1 import univ
 	# generic appears to have side effects we need...
 	from pysnmp.proto.api import generic
 except ImportError, err:
-	from pysnmp.v4.proto.omni import v2c,v1, error, rfc1157, rfc1905
+	#from pysnmp.v4.proto.omni import v2c,v1, error, rfc1157, rfc1905
+	pass
 	
 try:
 	raise ImportError
@@ -57,3 +59,11 @@ try:
 	CAN_CACHE_OIDS = True
 except (ImportError,AttributeError), err:
 	CAN_CACHE_OIDS = False
+
+def resolveVersion( value ):
+	"""Resolve a version specifier to a canonical version and an implementation"""
+	if value in ("2",'2c','v2','v2c'):
+		return 'v2c', v2c
+	else:
+		return 'v1', v1
+

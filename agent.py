@@ -2,9 +2,10 @@
 from __future__ import generators
 import weakref
 from twistedsnmp import datatypes
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, resolveVersion, oid
 from twistedsnmp.errors import noError, tooBig, noSuchName, badValue
 from twistedsnmp import errors
+from twisted.internet import reactor, defer
 
 __metaclass__ = type
 
@@ -27,6 +28,7 @@ class Agent:
 	def __init__(self, dataStore, protocol=None):
 		"""Initialise the MockAgent with OID list"""
 		self.dataStore = dataStore
+		self._trapRegistry = {}
 		if protocol is not None:
 			self.setProtocol( protocol )
 			protocol.setAgent( self )
@@ -315,3 +317,140 @@ class Agent:
 		for index, (oid,value) in enumerate(variables):
 			self.dataStore.setValue( oid, value  )
 		return variables
+	def getSysObjectId( self ):
+		"""Get our system object identifier for traps"""
+		# XXX find something useful...
+		return '1.3.6.1.1.2.3.4.1'
+
+
+	def registerTrap( 
+		self, trapHandler,
+	):
+		"""Register the given manager to watch the given trap
+		
+		The key (genericType,specificType) will be used to dispatch trap 
+		messages to those managers which are registered here
+		
+		Note: there is not automated clearing of managers from this table,
+		if you need to remove a manager you must call deregisterTrap( )
+		"""
+		specifics = self._trapRegistry.get( trapHandler.genericType)
+		if specifics is None:
+			self._trapRegistry[ trapHandler.genericType ] = specifics = {}
+		managers = specifics.get( trapHandler.specificType )
+		if managers is None:
+			specifics[ trapHandler.specificType ] = managers = {}
+		managers[ trapHandler.managerIP ] = trapHandler
+		return trapHandler
+	def findTrapHandlers( self, genericType=None, specificType=None ):
+		"""Yield set of paths to handlers for given types"""
+		if genericType is None:
+			for key in self._trapRegistry.keys():
+				if key is not None:
+					for path in self.findTrapHandlers( key, specificType ):
+						yield path 
+		else:
+			for gType in (genericType,None):
+				specifics = self._trapRegistry.get( gType )
+				if specifics:
+					if specificType is None:
+						for key,value in specifics.items():
+							if value:
+								yield gType, key, value 
+					elif specifics.has_key( specificType ):
+						if specifics[ specificType ]:
+							yield gType, specificType, specifics[ specificType ]
+					elif specifics.has_key( None ):
+						if specifics[ None ]:
+							yield gType, None, specifics[None]
+	
+	def deregisterTrap(
+		self, managerIP, genericType=None, specificType=None,
+	):
+		"""Deregister given managerIP from given traps 
+		
+		genericType -- if None, deregister from all generic types 
+		specificType -- if None, deregister from all specific types 
+		"""
+		count = 0
+		for (generic,specific,values) in self.findTrapHandlers(
+			genericType, specificType
+		):
+			if values.has_key( managerIP ):
+				try:
+					del values[ managerIP ]
+					count += 1
+				except KeyError, err:
+					pass 
+				try:
+					if not self._trapRegistry[generic][specific]:
+						del self._trapRegistry[generic][specific]
+				except KeyError, err:
+					pass
+				try:
+					if not self._trapRegistry[generic]:
+						del self._trapRegistry[generic]
+				except KeyError, err:
+					pass
+		return count
+	def sendTrap(
+		self, genericType=6, specificType=0, 
+		pdus=None,
+	):
+		"""Send given trap to all registered watchers"""
+		for (generic,specific,values) in self.findTrapHandlers(
+			genericType, specificType
+		):
+			for handler in values.values():
+				# XXX need to be able to add more data!
+				handler.send( 
+					self, 
+					genericType=genericType, 
+					specificType=specificType, 
+					pdus=pdus 
+				)
+
+class TrapHandler( object ):
+	"""Registration for a given Trap for a given manager"""
+	def __init__( 
+		self, managerIP, community='public', version='v2c',
+		genericType=None, specificType=None,
+	):
+		"""Initialise the registration for the given parameters
+		
+		managerIP -- (IP,port) address to which to send messages 
+		community -- community string to use for the messages we send 
+		genericType -- the major type spec for matching messages
+		specificType -- the minor type spec for matching messages
+		"""
+		self.managerIP = managerIP
+		self.community = community
+		self.genericType = genericType
+		self.specificType = specificType
+		self.implementation = resolveVersion( version)[1]
+	def send( self, agent, genericType=6, specificType=0, pdus=None ):
+		"""Given agent, send our message to the management stations"""
+		# XXX pysnmp doesn't seem to support v2 traps...
+		from pysnmp.proto.api import alpha
+		ver = alpha.v1
+		req = ver.Message()
+		req.apiAlphaSetCommunity(self.community)
+		trap = ver.TrapPdu()
+		if ver is alpha.v1:
+			trap.apiAlphaSetEnterprise(agent.getSysObjectId())
+			trap.apiAlphaSetGenericTrap( genericType )
+			trap.apiAlphaSetSpecificTrap( specificType )
+			if pdus:
+				if hasattr( pdus, 'items' ):
+					pdus = pdus.items()
+				pdus = [
+					(oid.OID(key),datatypes.typeCoerce(value, v1))
+					for key,value in pdus 
+				]
+				trap.apiAlphaSetVarBindList( *pdus )
+		else:
+			raise NotImplementedError( """No v2c trap-sending support yet""" )
+		req.apiAlphaSetPdu(trap)
+		return agent.protocol.send( req.berEncode(), self.managerIP )
+
+

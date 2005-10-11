@@ -108,18 +108,30 @@ class TableRetriever( object ):
 			in certain testing situations.
 			"""
 			OID = oid.OID
+			callback = None
+			if self.recordCallback and callable( self.recordCallback ):
+				callback = self.recordCallback
+			values = self.values
+			remainder = oidValues
+			# This is still fairly inefficient, but at least we're no longer 
+			# N*M iterations, so given the weight of the isaprefix check we 
+			# should be faster than before
 			for rootOID in rootOIDs:
-				for (key,value) in oidValues:
+				unmatched = []
+				for (key,value) in remainder:
 					key = OID(key)
 					if rootOID.isaprefix(key) and not isinstance(value, v2c.EndOfMibView):
-						current = self.values.get( rootOID )
+						current = values.get( rootOID )
 						if current is None:
-							self.values[ rootOID ] = current = {}
+							values[ rootOID ] = current = {}
 						# avoids duplicate callbacks!
 						if not current.has_key( key ):
 							current[ key ] = value
-							if self.recordCallback is not None and callable(self.recordCallback):
-								self.recordCallback( rootOID, key, value )
+							if callback is not None:
+								callback( rootOID, key, value )
+					else:
+						unmatched.append( (key,value) )
+				remainder = unmatched
 			if self.finished and self.finished < 2:
 				self.finished = 2
 				if getattr(self,'df',None) and not self.df.called:

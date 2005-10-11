@@ -34,3 +34,10 @@ agentprotocol_log = logging.getLogger( 'twsnmp.agentprotocol' )
 tableretriever_log = logging.getLogger( 'twsnmp.table' )
 agentproxy_log = logging.getLogger( 'twsnmp.agentproxy' )
 massretriever_log = logging.getLogger( 'twsnmp.massretriever' )
+
+protocol_log.setLevel( logging.DEBUG )
+agentprotocol_log.setLevel( logging.DEBUG )
+try:
+	logging.basicConfig()
+except Exception, err:
+	pass

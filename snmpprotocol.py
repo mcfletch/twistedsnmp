@@ -10,7 +10,7 @@ get on that port's protocol.
 """
 from twisted.internet import protocol, reactor
 from twisted.internet import error as twisted_error
-from twistedsnmp.pysnmpproto import v2c,v1, error
+from twistedsnmp.pysnmpproto import v2c,v1, error, alpha
 import traceback
 from twistedsnmp import datatypes, agentproxy
 from twistedsnmp.logs import protocol_log as log
@@ -52,7 +52,10 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				address, datagram,
 			)
 			return
-		key = self.getRequestKey( response, address )
+		try:
+			key = self.getRequestKey( response, address )
+		except KeyError, err:
+			key = None
 		if key in self.requests:
 			df,timer = self.requests[key]
 			if hasattr( timer, 'cancel' ):
@@ -62,17 +65,11 @@ class SNMPProtocol(protocol.DatagramProtocol):
 					pass
 			del self.requests[key]
 			try:
-				if not df.called:
-					reactor.callLater(
-						0.001, df.callback, response
-					)
-			except Exception, err:
-				log.error(
-					"""Failure scheduling response for processing %r: %s""",
-					response,
-					log.getException(err),
-				)
-				raise
+				df.callback( response )
+			except (twisted_error.AlreadyCalled,twisted_error.AlreadyCancelled):
+				pass
+		elif self.handleTrap( response, address ):
+			pass
 		else:
 			# is a timed-out response that finally arrived
 			log.info(
@@ -80,6 +77,51 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				key,
 				len(self.requests),
 			)
+	def handleTrap( self, request, address ):
+		"""Handle a trap message from an agent"""
+		log.debug( 'handleTrap: %s', request )
+		traps = getattr( self, '_trapRegistry', None )
+		if not traps:
+			return False
+		if traps.has_key( address ):
+			generics = traps[address]
+		elif traps.has_key( None ):
+			generics = traps[ None ]
+		else:
+			return False
+		# okay, now see what we're listening to for this agent...
+		# XXX is v1-specific at the moment...
+		if not generics:
+			return False 
+		try:
+			pdu = request.apiAlphaGetPdu()
+			if request.apiAlphaGetProtoVersionId() == alpha.protoVersionId1:
+				genericType = pdu.apiAlphaGetGenericTrap()
+				specificType = pdu.apiAlphaGetSpecificTrap()
+				community = request.apiAlphaGetCommunity()
+			else:
+				return False
+			found = False
+			for genericKey in (genericType,None):
+				specifics = generics.get(genericKey)
+				if specifics:
+					for specificKey in (specificType,None):
+						callbacks = specifics.get( specificKey )
+						if callbacks:
+							for callbackKey in (community,None):
+								callback = callbacks.get( callbackKey )
+								if callable( callback ):
+									callback( request, address )
+									found = True
+			return found
+		except Exception, err:
+			log.warn(
+				"""Failure processing trap %s from %s: %s""",
+				address,
+				request,
+				log.getException( err ),
+			)
+		return False
 	def send(self, request, target):
 		"""Send a request (string) to the network"""
 		return self.transport.write( request, target )
@@ -114,11 +156,12 @@ class SNMPProtocol(protocol.DatagramProtocol):
 				return response
 			except Exception, err:
 				pass
-##				log.error(
-##					"""Failure decoding datagram %r: %s""",
-##					message,
-##					log.getException(err),
-##				)
+		try:
+			metaReq = alpha.MetaMessage()
+			metaReq.decode( message )
+			return metaReq.apiAlphaGetCurrentComponent()
+		except Exception, err:
+			pass
 		return None
 
 def port( portNumber=-1, protocolClass=SNMPProtocol ):

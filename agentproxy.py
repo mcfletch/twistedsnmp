@@ -1,7 +1,9 @@
 """Client/manager side object for querying Agent via SNMPProtocol"""
 from twisted.internet import defer, reactor
 from twisted.python import failure
-from twistedsnmp.pysnmpproto import v2c,v1, error, oid, cacheOIDEncoding, CAN_CACHE_OIDS, USE_STRING_OIDS
+from twistedsnmp.pysnmpproto import v2c,v1, error, oid, cacheOIDEncoding
+from twistedsnmp.pysnmpproto import CAN_CACHE_OIDS, USE_STRING_OIDS
+from twistedsnmp.pysnmpproto import resolveVersion
 from twistedsnmp import datatypes, tableretriever
 import traceback, socket
 from twistedsnmp.logs import agentproxy_log as log
@@ -42,12 +44,7 @@ class AgentProxy:
 		self.snmpVersion, self.implementation = self.resolveVersion( snmpVersion)
 		self.protocol = protocol
 		self.allowCache = allowCache
-	def resolveVersion( self, value ):
-		"""Resolve a version specifier to a canonical version and an implementation"""
-		if value in ("2",'2c','v2','v2c'):
-			return 'v2c', v2c
-		else:
-			return 'v1', v1
+	resolveVersion = staticmethod( resolveVersion )
 	def __repr__( self ):
 		"""Get nice string representation of the proxy"""
 		ip,port,community,snmpVersion,protocol = self.ip,self.port,self.community,self.snmpVersion,self.protocol
@@ -175,7 +172,8 @@ class AgentProxy:
 			if USE_STRING_OIDS:
 				# need the isaprefix method, so need real ObjectIdentifier in
 				# older PySNMP implementations
-				rOID = self.proxy.getImplementation().ObjectIdentifier
+				# XXX regression here for PySNMP-non-se!
+				rOID = self.getImplementation().ObjectIdentifier
 			else:
 				rOID = OID
 			startOIDs = [rOID(oid) for oid in startOIDs]
@@ -194,6 +192,40 @@ class AgentProxy:
 		if self.verbose:
 			retriever.verbose = 1
 		return retriever( recordCallback = recordCallback,startOIDs = startOIDs,)
+	
+	def dispatchTrap(
+		self, message 
+	):
+		"""Dispatch incoming trap message to any registered watchers..."""
+		
+	def listenTrap( 
+		self, ipAddress=None, genericType=None, specificType=None,
+		community=None, 
+		callback=None,
+	):
+		"""Listen for incoming traps, direct to given callback 
+		
+		ipAddress -- address from which to allow messages
+		genericType, specificType -- if present, only messages with the given 
+			type are passed to the callback 
+		community -- if present, only messages with this community string are
+			accepted/passed on to the callback 
+		callback -- callable object to register, or None to deregister
+		"""
+		log.debug( 'listening for trap: %s %s', genericType, specificType )
+		trapWatchers = getattr( self.protocol, '_trapRegistry', None )
+		if trapWatchers is None:
+			trapWatchers = self.protocol._trapRegistry = {}
+		generics = trapWatchers.get( ipAddress )
+		if generics is None:
+			trapWatchers[ ipAddress ] = generics = {} 
+		specifics = generics.get( genericType )
+		if specifics is None:
+			generics[ genericType ] = specifics = {}
+		callbacks = specifics.get( specificType )
+		if callbacks is None:
+			specifics[ specificType ] = callbacks = {}
+		callbacks[ community ] = callback 
 	
 	def send(self, request):
 		"""Send a request (string) to the network"""
