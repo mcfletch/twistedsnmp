@@ -38,30 +38,32 @@ if __name__ == "__main__":
 	logging.basicConfig()
 	# need to get the ip address
 	usage = """Usage:
-	simpleget ipAddress community baseoid...
+	simpleget ipAddress port community baseoid...
 
 ipAddress -- dotted IP address of the agent
+port -- numeric port number of the agent
 community -- community string for the agent
 baseoid -- dotted set of OIDs to retrieve from agent
 """
-	if len(sys.argv) < 3:
+	if len(sys.argv) < 4:
 		print usage
 		sys.exit( 1 )
 	ipAddress = sys.argv[1]
 	# choose random port in range 25000 to 30000
 	port = snmpprotocol.port()
+	targetPort = int(sys.argv[2])
 	proxy = agentproxy.AgentProxy(
-		ipAddress, 161,
-		community = sys.argv[2],
+		ipAddress, targetPort,
+		community = sys.argv[3],
 		snmpVersion = 'v2',
 		protocol = port.protocol,
 	)
-	if not sys.argv[3:]:
+	if not sys.argv[4:]:
 		oids = [
 			'.1.3.6.1.2.1.1.1.0', 'New Description',
-			'.1.3.6.1.2.1.1.3.0', '11111111',
+			'.1.3.6.1.2.1.1.4.0', 'newperson@newdescription.net',
 		]
 	else:
-		oids = sys.argv[3:]
+		oids = sys.argv[4:]
 	reactor.callWhenRunning( main, proxy, oids )
 	reactor.run()
