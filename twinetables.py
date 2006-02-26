@@ -39,3 +39,30 @@ def twineTables( oidTable, oids ):
 			record[ oid ] = value
 			result[subKey] = record
 	return result
+
+def iterTwine( oidTable, oids ):
+	"""Twine the set as set of dictionaries with oids as keys
+	
+	This is an experiment to see if breaking up the twineTables can reduce
+	a block in applications that have thousands of records being twined 
+	simultaneously.  It is a much heavier total operation than the regular
+	twineTables, but may provide better latency.
+	
+	yields (suffix,record) with record as dict with passed oids as keys
+	"""
+	tables = oidTable.items()
+	def nextItem( ):
+		while tables:
+			(key,table) = tables[0]
+			nextKey = table.iterkeys().next()
+			yield nextKey[len(key):]
+			while tables and not tables[0][1]:
+				del tables[0]
+	for suffix in nextItem():
+		record = {}
+		for oid,table in tables:
+			try:
+				record[ oid ] = table.pop( oid+suffix )
+			except KeyError, err:
+				pass 
+		yield suffix, record 
