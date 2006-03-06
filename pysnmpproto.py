@@ -4,16 +4,40 @@ These can get moved around inside PySNMP, so we need this
 code to determine where the prototypes are, so we can reliably
 and simply import them throughout TwistedSNMP.
 """
+def cacheOIDEncoding( oid ):
+	"""Null operation when no univ module available"""
 try:
 	from pysnmp.proto import v2c, v1, error, rfc1155, rfc1902
 	from pysnmp.proto.api import alpha
 	from pysnmp.asn1 import univ
 	# generic appears to have side effects we need...
 	from pysnmp.proto.api import generic
+	pysnmpversion = 3
+	def resolveVersion( value ):
+		"""Resolve a version specifier to a canonical version and an implementation"""
+		if value in ("2",'2c','v2','v2c'):
+			return 'v2c', v2c
+		else:
+			return 'v1', v1
+	try:
+		from pysnmp.asn1 import oid
+		USE_STRING_OIDS = False
+		# This seems to slow down rather than speed up the OID class...
+		#psyco.bind(oid.OID)
+	except ImportError, err:
+		from twistedsnmp import oidstub as oid
+		USE_STRING_OIDS = True
+	try:
+		from pysnmp.asn1.encoding.ber import univ
+		cacheOIDEncoding = univ.ObjectIdentifierMixIn.berInternEncoding
+		CAN_CACHE_OIDS = True
+	except (ImportError,AttributeError), err:
+		CAN_CACHE_OIDS = False
 except ImportError, err:
-	#from pysnmp.v4.proto.omni import v2c,v1, error, rfc1157, rfc1905
-	pass
-	
+	pysnmpversion = 4
+	USE_STRING_OIDS = False
+	CAN_CACHE_OIDS = False
+
 try:
 	raise ImportError
 	import psyco
@@ -41,29 +65,3 @@ else:
 	# now clean up the namespace...
 	del base
 	del psyco
-
-try:
-	from pysnmp.asn1 import oid
-	USE_STRING_OIDS = False
-	# This seems to slow down rather than speed up the OID class...
-	#psyco.bind(oid.OID)
-except ImportError, err:
-	from twistedsnmp import oidstub as oid
-	USE_STRING_OIDS = True
-
-def cacheOIDEncoding( oid ):
-	"""Null operation when no univ module available"""
-try:
-	from pysnmp.asn1.encoding.ber import univ
-	cacheOIDEncoding = univ.ObjectIdentifierMixIn.berInternEncoding
-	CAN_CACHE_OIDS = True
-except (ImportError,AttributeError), err:
-	CAN_CACHE_OIDS = False
-
-def resolveVersion( value ):
-	"""Resolve a version specifier to a canonical version and an implementation"""
-	if value in ("2",'2c','v2','v2c'):
-		return 'v2c', v2c
-	else:
-		return 'v1', v1
-

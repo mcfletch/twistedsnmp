@@ -4,7 +4,7 @@ This was written against PySNMP 3.3.x, apparently 3.4.x has
 some fixes to make this all cleaner, but I haven't had time
 to revisit the question just yet.
 """
-from twistedsnmp.pysnmpproto import v2c,v1
+from twistedsnmp.pysnmpproto import v2c,v1,rfc1902
 
 class SimpleConverter:
 	"""Simple callable object that just does self.target(value.get())"""
@@ -43,6 +43,7 @@ v2Mapping = [
 	#(v2c.Unsigned32, v1.Integer ),
 	(v2c.VarBind, SimpleConverter(v1.VarBind )),
 ##	(v2c.VarBindList, SimpleConverter(v1.VarBindList) ),
+	(v2c.Counter64, SimpleConverter(rfc1902.Counter64)),
 ]	
 v1Mapping = [
 	(int, v2c.Integer),
@@ -65,6 +66,7 @@ v1Mapping = [
 	(v1.TimeTicks, SimpleConverter(v2c.TimeTicks)),
 	(v1.VarBind, SimpleConverter(v2c.VarBind)),
 ##	(v1.VarBindList, SimpleConverter(v2c.VarBindList)),
+	(rfc1902.Counter64, SimpleConverter(v2c.Counter64)),
 ]
 
 def typeCoerce( value, implementation ):

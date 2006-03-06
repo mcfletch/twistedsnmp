@@ -92,7 +92,7 @@ class TableRetriever( object ):
 			if self.finished and self.finished < 2:
 				self.finished = 2
 				if getattr(self,'df',None) and not self.df.called:
-					self.df.callback( self.values )
+					reactor.callLater( 0, self.df.callback, self.values )
 					del self.df
 	else:
 		def integrateNewRecord( self, oidValues, rootOIDs ):
@@ -135,8 +135,16 @@ class TableRetriever( object ):
 			if self.finished and self.finished < 2:
 				self.finished = 2
 				if getattr(self,'df',None) and not self.df.called:
-					self.df.callback( self.values )
+					reactor.callLater( 0, self.df.callback, self.values )
 					del self.df
+	def scheduleIntegrate( self, oidValues, rootOIDs ):
+		"""Schedule integration of oidValues into this table's results
+		
+		This breaks up the process so that we can process other events
+		before we do the (heavy) work of integrating the result-table...
+		"""
+		reactor.callLater( 0, self.integrateNewRecord, oidValues, rootOIDs )
+		return oidValues
 	def getTable(
 		self, oids=None, roots=None, includeStart=0,
 		retryCount=None, delay=None, firstCall=False,
@@ -205,7 +213,7 @@ class TableRetriever( object ):
 
 			df.addCallback( self.areWeDone, roots=roots, request=request )
 			df.addCallback( self.proxy.getResponseResults )
-			df.addCallback( self.integrateNewRecord, rootOIDs = roots[:] )
+			df.addCallback( self.scheduleIntegrate, rootOIDs = roots[:] )
 
 			timer = reactor.callLater(
 				self.timeout,

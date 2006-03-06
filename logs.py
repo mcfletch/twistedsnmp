@@ -27,6 +27,10 @@ def getException(error):
 
 logging.Logger.getException = staticmethod( getException )
 logging.Logger.err = logging.Logger.error
+logging.Logger.DEBUG = logging.DEBUG 
+logging.Logger.WARN = logging.WARN 
+logging.Logger.INFO = logging.INFO 
+logging.Logger.ERROR = logging.Logger.ERR = logging.ERROR
 
 # now the actual logs...
 protocol_log = logging.getLogger( 'twsnmp.protocol' )

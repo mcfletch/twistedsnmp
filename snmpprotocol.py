@@ -73,9 +73,10 @@ class SNMPProtocol(protocol.DatagramProtocol):
 		else:
 			# is a timed-out response that finally arrived
 			log.info(
-				"""Unexpected request key %r, %r requests pending""",
+				"""Unexpected request key %r, %r requests pending %s""",
 				key,
 				len(self.requests),
+				repr(self.requests.keys())[:100],
 			)
 	def handleTrap( self, request, address ):
 		"""Handle a trap message from an agent"""
@@ -201,6 +202,7 @@ def port( portNumber=-1, protocolClass=SNMPProtocol ):
 		except twisted_error.CannotListenError:
 			pass
 	raise twisted_error.CannotListenError(
+		'localhost', port, 
 		"""Could not listen on *any* port in our range of potential ports! %s"""%(
 			repr(ports)[:30],
 		),

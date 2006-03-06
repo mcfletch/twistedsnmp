@@ -4,6 +4,7 @@ from twistedsnmp.pysnmpproto import v2c,v1, error
 from pysnmp import error as pysnmp_error
 from pysnmp.asn1 import error as asnerror
 from twistedsnmp.logs import agentprotocol_log as log
+#log.setLevel( log.WARN )
 
 class AgentProtocol(protocol.ConnectedDatagramProtocol):
 	"""Base class for SNMP datagram protocol
