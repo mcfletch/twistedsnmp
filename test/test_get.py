@@ -2,7 +2,7 @@ from __future__ import nested_scopes
 from twisted.internet import reactor
 import socket, unittest
 from twistedsnmp import agent, agentprotocol, twinetables, agentproxy
-from twistedsnmp import snmpprotocol, massretriever
+from twistedsnmp import snmpprotocol, massretriever, tableretriever
 from twistedsnmp.test import basetestcase
 from twistedsnmp.pysnmpproto import v2c,v1, error, oid
 
@@ -131,6 +131,26 @@ class GetRetrieverV1( basetestcase.BaseTestCase ):
 		for oidObject in oids[:-1]:
 			assert self.response.has_key( oid.OID(oidObject) )
 		assert not self.response.has_key( oid.OID(oids[-1]) ), self.response
+	#good
+	def test_tableGetErrorReported( self ):
+		oids = [
+			'.1.3.6.1.2.1.1',
+			'.1.3.6.1.2.1.2',
+			'.1.3.6.2',
+			'.1.3.6.3',
+		]
+		originalAreWeDone = tableretriever.TableRetriever.areWeDone
+		def raiseError( *args, **named ):
+			raise TypeError( """Blah""" )
+		tableretriever.TableRetriever.areWeDone = raiseError
+		try:
+			d = self.client.getTable( oids )
+			self.doUntilFinish( d )
+		finally:
+			tableretriever.TableRetriever.areWeDone = originalAreWeDone
+		assert not self.success
+		assert isinstance( self.response.value, TypeError )
+		assert self.response.value.args == ('Blah',)
 
 	#good
 	def test_socketFailure( self ):
