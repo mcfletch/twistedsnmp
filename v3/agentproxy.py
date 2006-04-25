@@ -103,7 +103,7 @@ class AgentProxy:
 		raises errors if the setting fails
 		"""
 		if not self.protocol:
-			raise ValueError( """Expected a non-null protocol object! Got %r"""%(protocol,))
+			raise ValueError( """Expected a non-null protocol object! Got %r"""%(self.protocol,))
 		if hasattr( oids, "items"):
 			oids = oids.items()
 		request = self.encode(oids, self.community, set=1)
